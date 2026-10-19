@@ -1,5 +1,6 @@
 import { saveCar } from '@/app/actions'
 import type { Car } from '@/lib/data'
+import { VinInput } from './vin-input'
 
 const Field = ({ name, label, value, placeholder, type = 'text', inputMode, className = '' }: {
     name: string; label: string; value?: string | number | null; placeholder?: string; type?: string; inputMode?: 'numeric' | 'tel' | 'text'; className?: string
@@ -20,7 +21,7 @@ export function CarForm({ car, plate }: { car?: Car; plate?: string }) {
                 <Field name="model" label="Модель" value={car?.model} placeholder="ML500" />
                 <Field name="year" label="Год" value={car?.year} inputMode="numeric" placeholder="2008" />
                 <Field name="color" label="Цвет" value={car?.color} placeholder="синий" />
-                <Field name="vin" label="VIN" value={car?.vin} placeholder="17 символов" className="col-span-2" />
+                <VinInput defaultValue={car?.vin} />
             </div>
             <div className="h-px bg-line" />
             <div className="grid grid-cols-2 gap-3">

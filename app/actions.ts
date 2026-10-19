@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
 import { endSession, requireAuth } from '@/lib/auth'
-import { normPlate, type Part } from '@/lib/format'
+import { normPlate, normVin, type Part } from '@/lib/format'
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
 const int = (f: FormData, k: string) => { const v = str(f, k).replace(/\s/g, ''); return v === '' ? null : Math.round(Number(v)) || null }
@@ -18,7 +18,7 @@ export async function saveCar(f: FormData) {
     const id = int(f, 'id')
     const plate = str(f, 'plate').toUpperCase()
     const v = {
-        plate, plate_norm: normPlate(plate), vin: str(f, 'vin').toUpperCase(), brand: str(f, 'brand'), model: str(f, 'model'),
+        plate, plate_norm: normPlate(plate), vin: normVin(str(f, 'vin')), brand: str(f, 'brand'), model: str(f, 'model'),
         year: int(f, 'year'), color: str(f, 'color'), owner_name: str(f, 'owner_name'), owner_phone: str(f, 'owner_phone'), notes: str(f, 'notes'),
     }
     let carId = id
