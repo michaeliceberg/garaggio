@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, CalendarDays, CalendarClock, Wrench, Camera, MessageSquare } from 'lucide-react'
 import { saveVisit } from '@/app/actions'
 import type { Visit } from '@/lib/data'
 import { DEFAULT_INTERVAL_KM, DEFAULT_INTERVAL_MONTHS, partsTotal, rub, toISODate, workPresets, type Part, type Powertrain, type WorkPreset } from '@/lib/format'
@@ -71,35 +71,38 @@ export function VisitForm({ carId, powertrain, visit, lastMileage }: { carId: nu
         }
     }
 
+    // Быстрые кнопки «План на будущее»: срок от даты визита и пробег от текущего
+    const setNextIn = (months: number) => { setNextTouched(true); setNextDate(addMonths(date, months)) }
+    const setNextPlus = (k: number) => { const m = num(mileage); if (m) { setNextTouched(true); setNextKm(String(m + k)) } }
+    const quick = 'rounded-full border border-gold/40 px-3 py-1.5 text-sm font-semibold text-gold active:bg-gold/20'
+
     return (
         <form onSubmit={submit} className="flex flex-col gap-4">
-            <section className="card grid grid-cols-2 gap-3 p-4">
-                <div>
-                    <label className="label">Дата</label>
-                    <input type="date" value={date} onChange={(e) => onDate(e.target.value)} className="input" required />
+            <Section icon={<CalendarDays size={18} />} title="Сегодня" color="#53ADEF">
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="label">Дата</label>
+                        <input type="date" value={date} onChange={(e) => onDate(e.target.value)} className="input" required />
+                    </div>
+                    <div>
+                        <label className="label">Пробег, км</label>
+                        <input inputMode="numeric" value={mileage} onChange={(e) => onMileage(e.target.value)} className="input" placeholder={lastMileage ? `было ${lastMileage}` : '125 000'} />
+                    </div>
                 </div>
-                <div>
-                    <label className="label">Пробег, км</label>
-                    <input inputMode="numeric" value={mileage} onChange={(e) => onMileage(e.target.value)} className="input" placeholder={lastMileage ? `было ${lastMileage}` : '125 000'} />
-                </div>
-            </section>
+            </Section>
 
-            <section className="card flex flex-col gap-2 p-4">
-                <label className="label">Что сделали</label>
+            <Section icon={<Wrench size={18} />} title="Работы и детали" color="#E5533D">
                 <div className="flex flex-wrap gap-1.5">{presets.own.map((p) => <Chip key={p.text} p={p} />)}</div>
                 <div className="text-xs font-semibold text-muted">Колёса и тормоза</div>
                 <div className="flex flex-wrap gap-1.5">{presets.common.map((p) => <Chip key={p.text} p={p} />)}</div>
-                <textarea value={works} onChange={(e) => setWorks(e.target.value)} rows={4} className="input" placeholder="Замена масла и фильтров, проверка тормозов…" />
-            </section>
+                <textarea value={works} onChange={(e) => setWorks(e.target.value)} rows={3} className="input" placeholder="Что сделали — кнопками выше или своими словами" />
 
-            <section className="card flex flex-col gap-3 p-4">
-                <div className="flex items-center justify-between">
-                    <span className="label mb-0">Детали</span>
+                <div className="mt-1 flex items-center justify-between border-t border-line pt-3">
+                    <span className="text-sm font-bold">Детали</span>
                     <button type="button" className="text-sm font-bold text-gold" onClick={() => setParts([...parts, { name: '', article: '', price: 0 }])}>
-                        <span className="flex items-center gap-1"><Plus size={16} />Добавить</span>
+                        <span className="flex items-center gap-1"><Plus size={16} />Добавить деталь</span>
                     </button>
                 </div>
-                {parts.length === 0 && <p className="text-sm text-muted">Деталей не было — или нажмите «Добавить».</p>}
                 {parts.map((p, i) => (
                     <div key={i} className="grid grid-cols-[1fr_auto] gap-2 rounded-xl bg-bg p-2">
                         <input value={p.name} onChange={(e) => setPart(i, { name: e.target.value })} className="input" placeholder="Масло Shell 5W-30, 4 л" />
@@ -113,44 +116,65 @@ export function VisitForm({ carId, powertrain, visit, lastMileage }: { carId: nu
                         <label className="label">Работа, ₽</label>
                         <input inputMode="numeric" value={labor} onChange={(e) => setLabor(e.target.value)} className="input" placeholder="0" />
                     </div>
-                    <div className="pb-3 text-right text-lg font-black text-olive">Итого {rub(total)}</div>
+                    <div className="rounded-xl bg-olive/15 px-3 py-3 text-right">
+                        <div className="text-xs font-semibold text-olive/80">Итого</div>
+                        <div className="text-lg font-black text-olive">{rub(total)}</div>
+                    </div>
                 </div>
-            </section>
+            </Section>
 
-            <section className="card flex flex-col gap-3 p-4">
-                <label className="label mb-0">Фото</label>
+            <Section icon={<Camera size={18} />} title="Фото" color="#8DB255">
                 <PhotoPicker photos={photos} onChange={setPhotos} />
-            </section>
+            </Section>
 
-            <section className="card flex flex-col gap-3 p-4">
-                <div>
-                    <label className="label">Заметки</label>
-                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="input" placeholder="Нюансы, что заметили" />
-                </div>
-                <div>
-                    <label className="label">Рекомендации клиенту</label>
-                    <textarea value={recs} onChange={(e) => setRecs(e.target.value)} rows={2} className="input" placeholder="Скоро менять колодки…" />
-                </div>
+            <Section icon={<MessageSquare size={18} />} title="Заметки и рекомендации" color="#9AA7B0">
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="input" placeholder="Заметки: нюансы, что заметили" />
+                <textarea value={recs} onChange={(e) => setRecs(e.target.value)} rows={2} className="input" placeholder="Рекомендации клиенту: скоро менять колодки…" />
                 <label className="flex items-center gap-3 rounded-xl bg-bg p-3">
                     <input type="checkbox" checked={declined} onChange={(e) => setDeclined(e.target.checked)} className="h-6 w-6 accent-tomato" />
                     <span className="text-sm">Клиент <b>отказался</b> от рекомендаций (сохранится с датой — на случай спора)</span>
                 </label>
-            </section>
+            </Section>
 
-            <section className="card grid grid-cols-2 gap-3 p-4">
-                <div className="col-span-2 label mb-0">Следующее ТО — что наступит раньше</div>
-                <div>
-                    <label className="label">Дата</label>
-                    <input type="date" value={nextDate} onChange={(e) => { setNextTouched(true); setNextDate(e.target.value) }} className="input" />
+            {/* План на будущее — отдельный «жёлтый» блок: это не про сегодняшний визит, а про следующий */}
+            <section className="flex flex-col gap-3 rounded-2xl border-2 border-dashed border-gold/50 bg-gold/[0.07] p-4">
+                <div className="flex items-center gap-2 text-gold">
+                    <CalendarClock size={20} />
+                    <div>
+                        <div className="font-black">План: следующее ТО</div>
+                        <div className="text-xs font-semibold text-gold/70">что наступит раньше — машина появится в «Пора на ТО»</div>
+                    </div>
                 </div>
-                <div>
-                    <label className="label">Пробег, км</label>
-                    <input inputMode="numeric" value={nextKm} onChange={(e) => { setNextTouched(true); setNextKm(e.target.value) }} className="input" placeholder="+10 000" />
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-2">
+                        <label className="label mb-0">Дата</label>
+                        <input type="date" value={nextDate} onChange={(e) => { setNextTouched(true); setNextDate(e.target.value) }} className="input" />
+                        <div className="flex flex-wrap gap-1.5">
+                            {[3, 6, 12].map((m) => <button key={m} type="button" className={quick} onClick={() => setNextIn(m)}>{m} мес</button>)}
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="label mb-0">Пробег, км</label>
+                        <input inputMode="numeric" value={nextKm} onChange={(e) => { setNextTouched(true); setNextKm(e.target.value) }} className="input" placeholder="+10 000" />
+                        <div className="flex flex-wrap gap-1.5">
+                            {[5000, 10000, 15000].map((k) => <button key={k} type="button" className={quick} disabled={!num(mileage)} onClick={() => setNextPlus(k)}>+{k / 1000} т</button>)}
+                        </div>
+                    </div>
                 </div>
             </section>
 
             {error && <p className="font-semibold text-tomato">{error}</p>}
-            <button className="btn-primary sticky bottom-24 z-10 w-full" disabled={!!busy}>{busy ?? (visit ? 'Сохранить визит' : 'Сохранить визит')}</button>
+            <button className="btn-primary sticky bottom-24 z-10 w-full" disabled={!!busy}>{busy ?? 'Сохранить визит'}</button>
         </form>
+    )
+}
+
+// Блок формы: цветная полоска слева + иконка и заголовок — сразу видно, где какая часть визита.
+function Section({ icon, title, color, children }: { icon: React.ReactNode; title: string; color: string; children: React.ReactNode }) {
+    return (
+        <section className="card flex flex-col gap-3 overflow-hidden p-4" style={{ boxShadow: `inset 4px 0 0 ${color}` }}>
+            <div className="flex items-center gap-2 font-black" style={{ color }}>{icon}<span>{title}</span></div>
+            {children}
+        </section>
     )
 }
