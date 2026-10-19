@@ -5,6 +5,7 @@ import { normPlate, type Part, type Powertrain } from './format'
 export type Car = {
     id: number; plate: string; vin: string; brand: string; model: string; year: number | null; color: string
     owner_name: string; owner_phone: string; notes: string; created_at: string; powertrain: Powertrain
+    tg_chat_id: string | null // bigint приходит строкой
 }
 export type Visit = {
     id: number; car_id: number; visit_date: string; mileage: number | null; works: string; parts: Part[]; labor_cost: number; paid: boolean

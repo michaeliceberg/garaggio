@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MessageCircle, Send, Copy, MessageSquareText, Check } from 'lucide-react'
+import { MessageCircle, Send, Copy, MessageSquareText, Check, Bot } from 'lucide-react'
+import { tgToCar } from '@/app/actions'
 import { phoneDigits, type MsgTemplate } from '@/lib/messages'
 
 // Написать клиенту: WhatsApp и SMS открываются сразу с текстом; в Telegram текст подставить нельзя —
 // копируем его и открываем чат, остаётся вставить. «Скопировать» — для Max и всего остального.
-export function MessageButtons({ phone, templates }: { phone: string; templates: MsgTemplate[] }) {
+// tgCarId — клиент подписан на бота: главная кнопка отправляет текст сразу, без переключения в мессенджер.
+export function MessageButtons({ phone, templates, tgCarId }: { phone: string; templates: MsgTemplate[]; tgCarId?: number | null }) {
+    const [sending, setSending] = useState(false)
     const [tpl, setTpl] = useState(templates[0].id)
     const [text, setText] = useState(templates[0].text)
     const [note, setNote] = useState<string | null>(null)
@@ -30,7 +33,17 @@ export function MessageButtons({ phone, templates }: { phone: string; templates:
                 </div>
             )}
             <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} className="input text-sm" />
-            <div className="grid grid-cols-2 gap-2">
+            {tgCarId && (
+                <button type="button" disabled={sending} className="btn-primary w-full !bg-[#2AABEE] !shadow-[0_3px_0_#1B7FB3]"
+                    onClick={async () => {
+                        setSending(true)
+                        try { const r = await tgToCar(tgCarId, text); flash('error' in r && r.error ? r.error : 'Отправлено в Telegram ✅') }
+                        finally { setSending(false) }
+                    }}>
+                    <Bot size={20} />{sending ? 'Отправляем…' : 'Отправить через бот Garaggio'}
+                </button>
+            )}
+            {phone && <div className="grid grid-cols-2 gap-2">
                 <a href={`https://wa.me/${d}?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer" className={`${btn} border-[#25D366]/50 text-[#25D366]`}>
                     <MessageCircle size={18} />WhatsApp
                 </a>
@@ -44,7 +57,7 @@ export function MessageButtons({ phone, templates }: { phone: string; templates:
                 <button type="button" className={`${btn} border-line text-white`} onClick={async () => flash((await copy()) ? 'Скопировано — вставьте в Max или куда удобно' : 'Не получилось скопировать')}>
                     {note ? <Check size={18} /> : <Copy size={18} />}Скопировать
                 </button>
-            </div>
+            </div>}
             {note && <p className="text-center text-sm font-semibold text-olive">{note}</p>}
         </div>
     )

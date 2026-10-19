@@ -46,3 +46,29 @@ CREATE TABLE IF NOT EXISTS photos (
     created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS photos_visit_idx ON photos (visit_id);
+
+-- Telegram-бот: машина привязана к чату клиента (подписка по ссылке/QR или по номеру телефона)
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS tg_chat_id bigint;
+CREATE INDEX IF NOT EXISTS cars_tg_chat_idx ON cars (tg_chat_id);
+CREATE TABLE IF NOT EXISTS tg_chats (
+    chat_id    bigint PRIMARY KEY,
+    name       text NOT NULL DEFAULT '',
+    username   text NOT NULL DEFAULT '',
+    phone      text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+-- переписка: out = от мастера клиенту; master_msg_id — копия у мастера в Telegram (ответ на неё уходит клиенту)
+CREATE TABLE IF NOT EXISTS tg_messages (
+    id            serial PRIMARY KEY,
+    chat_id       bigint NOT NULL,
+    out           boolean NOT NULL DEFAULT false,
+    text          text NOT NULL DEFAULT '',
+    seen          boolean NOT NULL DEFAULT false,
+    master_msg_id bigint,
+    created_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS tg_messages_chat_idx ON tg_messages (chat_id, id DESC);
+CREATE TABLE IF NOT EXISTS settings (
+    key   text PRIMARY KEY,
+    value text NOT NULL DEFAULT ''
+);

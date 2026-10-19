@@ -6,7 +6,7 @@ import { ensureShareToken } from '@/app/actions'
 import { MessageButtons } from './message-buttons'
 
 // «Отчёт клиенту»: делаем секретную ссылку и сразу даём отправить её любым мессенджером.
-export function ShareReport({ visitId, token: initial, phone, hello, car }: { visitId: number; token: string | null; phone: string; hello: string; car: string }) {
+export function ShareReport({ visitId, token: initial, phone, hello, car, tgCarId }: { visitId: number; token: string | null; phone: string; hello: string; car: string; tgCarId?: number | null }) {
     const [token, setToken] = useState(initial)
     const [busy, setBusy] = useState(false)
     // адрес сайта берём в браузере (на сервере window нет)
@@ -28,7 +28,7 @@ export function ShareReport({ visitId, token: initial, phone, hello, car }: { vi
                 <span className="font-black">Отчёт клиенту</span>
                 <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm font-semibold text-gold"><ExternalLink size={16} />Открыть</a>
             </div>
-            {phone ? <MessageButtons phone={phone} templates={[{ id: 'report', label: 'Отчёт', text }]} /> : <p className="break-all text-sm text-muted">{url}</p>}
+            {phone || tgCarId ? <MessageButtons phone={phone} templates={[{ id: 'report', label: 'Отчёт', text }]} tgCarId={tgCarId} /> : <p className="break-all text-sm text-muted">{url}</p>}
         </div>
     )
 }

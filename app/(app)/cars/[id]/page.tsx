@@ -7,6 +7,7 @@ import { dateRu, km, rub, partsTotal, telHref, POWERTRAIN_LABEL } from '@/lib/fo
 import { PlateBadge } from '@/components/plate'
 import { MessageButtons } from '@/components/message-buttons'
 import { templatesFor } from '@/lib/messages'
+import { TgInvite } from '@/components/tg-invite'
 
 // Карточка машины: данные + вся история визитов лентой (свежие сверху).
 export default async function CarPage({ params }: { params: { id: string } }) {
@@ -34,12 +35,13 @@ export default async function CarPage({ params }: { params: { id: string } }) {
                         {car.owner_phone && <a href={telHref(car.owner_phone)} className="btn-ghost min-h-[44px] px-4"><Phone size={18} />Позвонить</a>}
                     </div>
                 )}
-                {car.owner_phone && (
+                {(car.owner_phone || car.tg_chat_id) && (
                     <details className="rounded-xl bg-bg p-3">
                         <summary className="cursor-pointer list-none font-bold">✉️ Написать клиенту</summary>
-                        <div className="mt-3"><MessageButtons phone={car.owner_phone} templates={templatesFor(car, next?.next_date)} /></div>
+                        <div className="mt-3"><MessageButtons phone={car.owner_phone} templates={templatesFor(car, next?.next_date)} tgCarId={car.tg_chat_id ? car.id : null} /></div>
                     </details>
                 )}
+                <TgInvite car={car} />
                 {car.notes && <p className="whitespace-pre-wrap rounded-xl bg-bg p-3 text-sm">📝 {car.notes}</p>}
                 {next && (next.next_date || next.next_mileage) && (
                     <p className="rounded-xl bg-gold/10 p-3 text-sm font-semibold text-gold">

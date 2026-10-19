@@ -61,7 +61,7 @@ export default async function VisitPage({ params }: { params: { id: string } }) 
             </section>
 
             <ShareReport visitId={visit.id} token={visit.share_token} phone={car?.owner_phone ?? ''}
-                hello={car?.owner_name ? `Чао, ${car.owner_name.split(' ')[0]}!` : 'Чао!'} car={[car?.brand, car?.model].filter(Boolean).join(' ')} />
+                hello={car?.owner_name ? `Чао, ${car.owner_name.split(' ')[0]}!` : 'Чао!'} car={[car?.brand, car?.model].filter(Boolean).join(' ')} tgCarId={car?.tg_chat_id ? car.id : null} />
 
             <section className="card flex flex-col gap-3 p-4">
                 <h2 className="font-black">Фото · {photos.length}</h2>

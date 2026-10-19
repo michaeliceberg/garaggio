@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
 import { endSession, requireAuth } from '@/lib/auth'
 import { parseVoiceText, type VoiceParsed } from '@/lib/ai'
+import { sendToClient } from '@/lib/tg'
 import { formatPhone, guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
@@ -102,4 +103,27 @@ export async function deletePhoto(f: FormData) {
     const [p] = await sql<{ file: string }[]>`DELETE FROM photos WHERE id = ${id} RETURNING file`
     if (p) await fs.rm(path.join(process.env.UPLOAD_DIR!, p.file), { force: true })
     redirect(`/visits/${visitId}`)
+}
+
+// Telegram: написать клиенту через бота (по машине или по чату из «Ящика»)
+export async function tgToCar(carId: number, text: string) {
+    requireAuth()
+    const t = text.trim()
+    if (!t) return { error: 'Пустое сообщение' }
+    const [car] = await sql<{ tg_chat_id: string | null }[]>`SELECT tg_chat_id::text FROM cars WHERE id = ${carId}`
+    if (!car?.tg_chat_id) return { error: 'Клиент не подписан на бота' }
+    return tgToChat(car.tg_chat_id, t)
+}
+export async function tgToChat(chatId: string, text: string) {
+    requireAuth()
+    const t = text.trim()
+    if (!t || !/^-?\d+$/.test(chatId)) return { error: 'Пустое сообщение' }
+    try { await sendToClient(chatId, t) } catch (e) { return { error: (e as Error).message } }
+    revalidatePath('/inbox'); revalidatePath(`/inbox/${chatId}`)
+    return { ok: true }
+}
+export async function tgUnlinkCar(carId: number) {
+    requireAuth()
+    await sql`UPDATE cars SET tg_chat_id = NULL WHERE id = ${carId}`
+    revalidatePath(`/cars/${carId}`); revalidatePath('/inbox')
 }
