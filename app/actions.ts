@@ -1,6 +1,7 @@
 'use server'
 
 import fs from 'node:fs/promises'
+import crypto from 'node:crypto'
 import path from 'node:path'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -55,6 +56,16 @@ export async function saveVisit(input: {
     const [{ id }] = await sql<{ id: number }[]>`INSERT INTO visits ${sql(v)} RETURNING id`
     revalidatePath(`/cars/${input.car_id}`)
     return id
+}
+// Ссылка «отчёт клиенту»: случайный токен, один на визит (повторный вызов — та же ссылка).
+export async function ensureShareToken(visitId: number) {
+    requireAuth()
+    const [v] = await sql<{ share_token: string | null }[]>`SELECT share_token FROM visits WHERE id = ${visitId}`
+    if (!v) throw new Error('no visit')
+    if (v.share_token) return v.share_token
+    const token = crypto.randomBytes(12).toString('base64url')
+    await sql`UPDATE visits SET share_token = ${token} WHERE id = ${visitId}`
+    return token
 }
 export async function deleteVisit(f: FormData) {
     requireAuth()

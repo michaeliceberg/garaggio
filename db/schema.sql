@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS visits (
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS visits_car_idx ON visits (car_id, visit_date DESC);
+-- секретная ссылка «отчёт клиенту» (/r/<token>), создаётся по кнопке
+ALTER TABLE visits ADD COLUMN IF NOT EXISTS share_token text UNIQUE;
 
 CREATE TABLE IF NOT EXISTS photos (
     id         serial PRIMARY KEY,

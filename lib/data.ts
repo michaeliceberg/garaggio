@@ -9,6 +9,7 @@ export type Car = {
 export type Visit = {
     id: number; car_id: number; visit_date: string; mileage: number | null; works: string; parts: Part[]; labor_cost: number
     notes: string; recommendations: string; declined: boolean; next_date: string | null; next_mileage: number | null
+    share_token: string | null
 }
 export type Photo = { id: number; visit_id: number; kind: string; created_at: string }
 
@@ -37,6 +38,11 @@ export async function getVisits(carId: number) {
 }
 export async function getVisit(id: number) {
     const [v] = await sql<Visit[]>`SELECT * FROM visits WHERE id = ${id}`
+    return v ?? null
+}
+export async function getVisitByToken(token: string) {
+    if (!/^[\w-]{10,40}$/.test(token)) return null
+    const [v] = await sql<Visit[]>`SELECT * FROM visits WHERE share_token = ${token}`
     return v ?? null
 }
 export async function getPhotos(visitId: number) {

@@ -6,6 +6,7 @@ import { dateRu, km, rub, partsTotal } from '@/lib/format'
 import { kindLabel } from '@/lib/photo-client'
 import { PlateBadge } from '@/components/plate'
 import { AddPhotos } from '@/components/add-photos'
+import { ShareReport } from '@/components/share-report'
 import { ConfirmButton } from '@/components/confirm-button'
 import { deletePhoto, deleteVisit } from '@/app/actions'
 
@@ -56,6 +57,9 @@ export default async function VisitPage({ params }: { params: { id: string } }) 
                     <p className="text-sm text-muted">Следующее ТО: {[visit.next_date && dateRu(visit.next_date), visit.next_mileage && km(visit.next_mileage)].filter(Boolean).join(' или ')}</p>
                 )}
             </section>
+
+            <ShareReport visitId={visit.id} token={visit.share_token} phone={car?.owner_phone ?? ''}
+                hello={car?.owner_name ? `Чао, ${car.owner_name.split(' ')[0]}!` : 'Чао!'} car={[car?.brand, car?.model].filter(Boolean).join(' ')} />
 
             <section className="card flex flex-col gap-3 p-4">
                 <h2 className="font-black">Фото · {photos.length}</h2>
