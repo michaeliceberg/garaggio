@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Phone, Pencil, Plus, Camera, AlertTriangle } from 'lucide-react'
 import { getCar, getVisits } from '@/lib/data'
+import { colorHex } from '@/lib/car-dicts'
 import { dateRu, km, rub, partsTotal, telHref, POWERTRAIN_LABEL } from '@/lib/format'
 import { PlateBadge } from '@/components/plate'
 import { MessageButtons } from '@/components/message-buttons'
@@ -20,7 +21,7 @@ export default async function CarPage({ params }: { params: { id: string } }) {
                     <div>
                         <PlateBadge plate={car.plate} big />
                         <h1 className="mt-2 text-2xl font-black">{[car.brand, car.model].filter(Boolean).join(' ') || 'Без марки'}</h1>
-                        <p className="text-muted">{[POWERTRAIN_LABEL[car.powertrain], car.year, car.color].filter(Boolean).join(' · ')}{car.vin ? ` · VIN ${car.vin}` : ''}</p>
+                        <p className="text-muted">{colorHex(car.color) && <span className="mr-1.5 inline-block h-3 w-3 rounded-full border border-line align-middle" style={{ background: colorHex(car.color) }} />}{[POWERTRAIN_LABEL[car.powertrain], car.year, car.color].filter(Boolean).join(' · ')}{car.vin ? ` · VIN ${car.vin}` : ''}</p>
                     </div>
                     <Link href={`/cars/${car.id}/edit`} className="btn-ghost min-h-[44px] px-3" aria-label="Редактировать"><Pencil size={18} /></Link>
                 </div>
