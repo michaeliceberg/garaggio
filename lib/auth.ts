@@ -9,9 +9,9 @@ const MAX_AGE = 60 * 60 * 24 * 90 // 90 дней — чтобы не вводи�
 
 const sign = (v: string) => crypto.createHmac('sha256', process.env.SESSION_SECRET!).update(v).digest('hex')
 
-// Пароль сравниваем «по-человечески»: без учёта регистра, лишних пробелов и оттенка кожи / варианта эмодзи
-// (на разных телефонах 🤌 вставляется с разными невидимыми добавками).
-const normPw = (s: string) => s.normalize('NFC').replace(/[\u{1F3FB}-\u{1F3FF}\uFE0E\uFE0F\u200D]/gu, '').replace(/\s+/g, ' ').trim().toLowerCase()
+// Пароль сравниваем «по-человечески»: только буквы и цифры, без учёта регистра, пробелов, эмодзи и знаков
+// (🤌 на разных телефонах вставляется по-разному, а иногда его просто трудно набрать). ё = е.
+const normPw = (s: string) => s.normalize('NFC').toLowerCase().replace(/ё/g, 'е').replace(/[^\p{L}\p{N}]/gu, '')
 export function checkPassword(pw: string) {
     const a = Buffer.from(normPw(pw))
     const b = Buffer.from(normPw(process.env.MASTER_PASSWORD ?? ''))
