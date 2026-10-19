@@ -24,6 +24,10 @@ export function voiceText(text: string) {
         .replace(/\s{2,}/g, ' ')
         .trim()
     t = t.replace(/(^|[.!?]\s+)(Грацие|Спасибо)/, '$1[warmly] $2')
+    // смешок после приветствия, как в выбранном образце: «Это Гараджио! [laughs] Вашему…»
+    t = /Это Гараджио[.!]/.test(t)
+        ? t.replace(/Это Гараджио[.!]/, 'Это Гараджио! [laughs]')
+        : t.replace(/^([^.!?]+[.!?])\s+/, '$1 [laughs] ')
     return `[cheerful] ${t}`
 }
 

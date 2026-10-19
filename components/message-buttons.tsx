@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MessageCircle, Send, Copy, MessageSquareText, Check, Bot, Mic, Play, Square, Share2 } from 'lucide-react'
+import { MessageCircle, Send, Copy, MessageSquareText, Check, Bot, Mic, Share2, Sparkles } from 'lucide-react'
 import { tgToCar, tgVoiceToCar } from '@/app/actions'
 import { phoneDigits, type MsgTemplate } from '@/lib/messages'
 
-// Написать клиенту: WhatsApp и SMS открываются сразу с текстом; в Telegram текст подставить нельзя —
+// Связаться с клиентом: WhatsApp и SMS открываются сразу с текстом; в Telegram текст подставить нельзя —
 // копируем его и открываем чат, остаётся вставить. «Скопировать» — для Max и всего остального.
 // tgCarId — клиент подписан на бота: главная кнопка отправляет текст сразу, без переключения в мессенджер.
 // voice — тот же текст голосом Chuck Miller: «Послушать» есть всегда; подписанному на бота — «Голосовое через бот»,
@@ -83,10 +83,14 @@ export function MessageButtons({ phone, templates, tgCarId, voice }: { phone: st
                 </button>
             )}
             {voice && (
-                <div className="grid grid-cols-[auto_1fr] gap-2">
+                <div className="grid grid-cols-2 gap-2">
                     <button type="button" disabled={sending === 'voice' || sending === 'preview'} onClick={preview}
-                        className={`${btn} border-[#2AABEE]/50 px-4 text-[#2AABEE]`} aria-label="Послушать">
-                        {player ? <Square size={18} /> : <Play size={18} />}{sending === 'preview' ? 'Озвучиваем…' : player ? 'Стоп' : 'Послушать'}
+                        className="btn-magic" data-state={sending === 'preview' ? 'busy' : player ? 'playing' : 'idle'} aria-label="Послушать голосом">
+                        {[18, 42, 66, 86].map((left, i) => <span key={left} className="magic-spark" style={{ left: `${left}%`, animationDelay: `${i * 0.45}s` }} />)}
+                        {player
+                            ? <span className="magic-bars" aria-hidden><i /><i /><i /><i /></span>
+                            : <Sparkles size={20} className="magic-icon" />}
+                        {sending === 'preview' ? 'Колдуем…' : player ? 'Стоп' : 'Послушать'}
                     </button>
                     {tgCarId ? (
                         <button type="button" disabled={!!sending} className={`${btn} border-[#2AABEE]/50 text-[#2AABEE]`}

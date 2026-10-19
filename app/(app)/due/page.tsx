@@ -34,7 +34,7 @@ export default async function DuePage() {
                             {c.owner_phone || c.tg_chat_id ? (
                                 <details className="rounded-xl bg-bg p-2">
                                     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-1 py-1 font-bold">
-                                        <span>✉️ Написать клиенту{c.tg_chat_id && ' · 🤖'}</span>
+                                        <span>💬 Связаться с клиентом{c.tg_chat_id && ' · 🤖'}</span>
                                         {c.owner_phone ? <a href={telHref(c.owner_phone)} className="flex items-center gap-1 text-sm text-muted"><Phone size={16} />{c.owner_phone}</a> : <span className="text-sm text-[#2AABEE]">Telegram</span>}
                                     </summary>
                                     <div className="mt-2"><MessageButtons phone={c.owner_phone} templates={[{ id: 'due', label: 'Пора на ТО', text: dueText(c, c.next_date) }]} tgCarId={c.tg_chat_id ? c.id : null} voice={ttsEnabled()} /></div>

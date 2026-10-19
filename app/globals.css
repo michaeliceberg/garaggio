@@ -15,3 +15,40 @@ body { -webkit-tap-highlight-color: transparent; }
     .btn-ghost { @apply btn border border-line bg-card text-white; }
     .btn-danger { @apply btn border border-tomato/40 bg-transparent text-tomato; }
 }
+
+/* «Послушать»: волшебная кнопка — переливающийся градиент, блик и искры; пока озвучиваем — светится,
+   пока играет — пляшут полоски эквалайзера. */
+@keyframes magic-flow { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+@keyframes magic-shine { 0%, 60% { transform: translateX(-120%) skewX(-20deg); } 100% { transform: translateX(260%) skewX(-20deg); } }
+@keyframes magic-twinkle { 0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; } 50% { transform: scale(1.25) rotate(18deg); opacity: .75; } }
+@keyframes magic-glow { 0%, 100% { box-shadow: 0 0 10px 1px rgba(242, 195, 91, .45); } 50% { box-shadow: 0 0 26px 6px rgba(229, 83, 61, .6); } }
+@keyframes magic-bar { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+@keyframes magic-spark { 0% { transform: translateY(0) scale(0); opacity: 0; } 30% { opacity: 1; transform: translateY(-6px) scale(1); } 100% { transform: translateY(-22px) scale(0); opacity: 0; } }
+.btn-magic {
+    position: relative; overflow: hidden; isolation: isolate;
+    display: flex; min-height: 52px; align-items: center; justify-content: center; gap: .5rem;
+    border-radius: .75rem; padding: 0 1.1rem; font-weight: 900; color: #1b1407;
+    background: linear-gradient(110deg, #F2C35B, #FF8A5B, #E5533D, #B57BFF, #F2C35B, #FF8A5B);
+    background-size: 200% 100%; animation: magic-flow 4s linear infinite;
+    box-shadow: 0 3px 0 #9E6A1F, 0 0 14px rgba(242, 195, 91, .35);
+    transition: transform .1s;
+}
+.btn-magic:active { transform: translateY(2px); }
+.btn-magic::after {
+    content: ''; position: absolute; inset: 0; z-index: -1; width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .7), transparent);
+    animation: magic-shine 2.8s ease-in-out infinite;
+}
+.btn-magic .magic-icon { animation: magic-twinkle 1.6s ease-in-out infinite; }
+.btn-magic .magic-spark {
+    position: absolute; bottom: 8px; width: 5px; height: 5px; border-radius: 9999px; background: #fff;
+    box-shadow: 0 0 6px 2px rgba(255, 255, 255, .9); animation: magic-spark 1.8s ease-out infinite; pointer-events: none;
+}
+.btn-magic[data-state='busy'] { animation: magic-flow 1.2s linear infinite, magic-glow 1.2s ease-in-out infinite; }
+.btn-magic[data-state='playing'] { animation: magic-flow 2s linear infinite, magic-glow 1.6s ease-in-out infinite; }
+.magic-bars { display: inline-flex; height: 18px; align-items: center; gap: 3px; }
+.magic-bars i { display: block; width: 3px; height: 100%; border-radius: 2px; background: currentColor; transform-origin: center; animation: magic-bar .8s ease-in-out infinite; }
+.magic-bars i:nth-child(2) { animation-delay: -.2s; } .magic-bars i:nth-child(3) { animation-delay: -.45s; } .magic-bars i:nth-child(4) { animation-delay: -.65s; }
+@media (prefers-reduced-motion: reduce) {
+    .btn-magic, .btn-magic::after, .btn-magic .magic-icon, .btn-magic .magic-spark, .magic-bars i { animation: none !important; }
+}
