@@ -3,6 +3,8 @@ import { Phone } from 'lucide-react'
 import { getDue } from '@/lib/data'
 import { dateRu, km, telHref } from '@/lib/format'
 import { PlateBadge } from '@/components/plate'
+import { MessageButtons } from '@/components/message-buttons'
+import { dueText } from '@/lib/messages'
 
 // Кого пора звать: срок ТО через 14 дней или уже прошёл — по дате или по прикинутому пробегу.
 export default async function DuePage() {
@@ -28,7 +30,15 @@ export default async function DuePage() {
                                 {c.days_left != null && (c.days_left < 0 ? `Просрочено на ${-c.days_left} дн. (${dateRu(c.next_date)})` : `Через ${c.days_left} дн. — ${dateRu(c.next_date)}`)}
                                 {c.km_left != null && c.km_left <= 700 && <div>Пробег ≈ {km(c.est_mileage)} из {km(c.next_mileage)}</div>}
                             </div>
-                            {c.owner_phone && <a href={telHref(c.owner_phone)} className="btn-ghost min-h-[44px]"><Phone size={18} />Позвонить {c.owner_phone}</a>}
+                            {c.owner_phone ? (
+                                <details className="rounded-xl bg-bg p-2">
+                                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-1 py-1 font-bold">
+                                        <span>✉️ Написать клиенту</span>
+                                        <a href={telHref(c.owner_phone)} className="flex items-center gap-1 text-sm text-muted"><Phone size={16} />{c.owner_phone}</a>
+                                    </summary>
+                                    <div className="mt-2"><MessageButtons phone={c.owner_phone} templates={[{ id: 'due', label: 'Пора на ТО', text: dueText(c, c.next_date) }]} /></div>
+                                </details>
+                            ) : <p className="text-sm text-muted">Телефон не указан</p>}
                         </li>
                     )
                 })}
