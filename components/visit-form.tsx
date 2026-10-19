@@ -14,7 +14,9 @@ import type { VoiceParsed } from '@/lib/ai'
 const addMonths = (iso: string, m: number) => { const d = new Date(iso); d.setMonth(d.getMonth() + m); return toISODate(d) }
 const num = (s: string) => { const v = s.replace(/\s/g, ''); return v === '' ? null : Math.round(Number(v)) || null }
 
-export function VisitForm({ carId, powertrain, visit, lastMileage }: { carId: number; powertrain: Powertrain; visit?: Visit; lastMileage?: number | null }) {
+export function VisitForm({ carId, powertrain, visit, lastMileage, known }: {
+    carId: number; powertrain: Powertrain; visit?: Visit; lastMileage?: number | null; known: { carParts: Part[]; allParts: Part[] }
+}) {
     const router = useRouter()
     const today = toISODate(new Date())
     const [date, setDate] = useState(visit?.visit_date ? toISODate(new Date(visit.visit_date)) : today)
@@ -45,8 +47,19 @@ export function VisitForm({ carId, powertrain, visit, lastMileage }: { carId: nu
         const ls = prev.split('\n').map((l) => l.trim()).filter(Boolean)
         return (ls.includes(w) ? ls.filter((l) => l !== w) : [...ls, w]).join('\n')
     })
+    // При добавлении работы — подставить деталь, которую ставили раньше (сначала этой машине, потом любой)
+    const addKnownPart = (p: WorkPreset) => {
+        if (!p.part || has(p.text)) return
+        const found = known.carParts.find((x) => p.part!.test(x.name)) ?? known.allParts.find((x) => p.part!.test(x.name))
+        if (found) setParts((prev) => (prev.some((x) => x.name.toLowerCase() === found.name.toLowerCase()) ? prev : [...prev.filter((x) => x.name.trim()), { ...found }]))
+    }
+    // Ввод названия детали: если такую уже ставили — подтянуть артикул и цену
+    const onPartName = (i: number, name: string) => {
+        const k = known.allParts.find((x) => x.name.toLowerCase() === name.trim().toLowerCase())
+        setParts((prev) => prev.map((p, j) => (j !== i ? p : k ? { name, article: p.article || k.article, price: p.price || k.price } : { ...p, name })))
+    }
     const Chip = ({ p }: { p: WorkPreset }) => (
-        <button type="button" onClick={() => toggleWork(p.text)} title={p.text}
+        <button type="button" onClick={() => { addKnownPart(p); toggleWork(p.text) }} title={p.text}
             className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${has(p.text) ? 'border-olive bg-olive/20 text-olive' : 'border-line text-white/85'}`}>
             {has(p.text) ? '✓ ' : '+ '}{p.label}
         </button>
@@ -122,12 +135,13 @@ export function VisitForm({ carId, powertrain, visit, lastMileage }: { carId: nu
                 </div>
                 {parts.map((p, i) => (
                     <div key={i} className="grid grid-cols-[1fr_auto] gap-2 rounded-xl bg-bg p-2">
-                        <input value={p.name} onChange={(e) => setPart(i, { name: e.target.value })} className="input" placeholder="Масло Shell 5W-30, 4 л" />
+                        <input value={p.name} onChange={(e) => onPartName(i, e.target.value)} list="known-parts" className="input" placeholder="Масло Shell 5W-30, 4 л" />
                         <button type="button" aria-label="Удалить деталь" onClick={() => setParts(parts.filter((_, j) => j !== i))} className="px-2 text-muted"><Trash2 size={18} /></button>
                         <input value={p.article ?? ''} onChange={(e) => setPart(i, { article: e.target.value })} className="input" placeholder="Артикул / производитель" />
                         <input inputMode="numeric" value={p.price ? String(p.price) : ''} onChange={(e) => setPart(i, { price: num(e.target.value) ?? 0 })} className="input w-28" placeholder="₽" />
                     </div>
                 ))}
+                <datalist id="known-parts">{known.allParts.map((p) => <option key={p.name} value={p.name} />)}</datalist>
                 <div className="grid grid-cols-2 items-end gap-3">
                     <div>
                         <label className="label">Работа, ₽</label>

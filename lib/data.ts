@@ -40,6 +40,22 @@ export async function getVisit(id: number) {
     const [v] = await sql<Visit[]>`SELECT * FROM visits WHERE id = ${id}`
     return v ?? null
 }
+// Детали, которые уже ставили: для подсказок при вводе и для кнопок типовых работ.
+// carParts — этой машине (свежие первыми), allParts — всем машинам (последняя цена/артикул по названию).
+export async function getKnownParts(carId: number) {
+    const rows = await sql<(Part & { car_id: number })[]>`
+        SELECT DISTINCT ON (v.car_id, lower(p->>'name')) p->>'name' AS name, coalesce(p->>'article', '') AS article,
+               coalesce((p->>'price')::int, 0) AS price, v.car_id
+        FROM visits v, jsonb_array_elements(v.parts) p
+        ORDER BY v.car_id, lower(p->>'name'), v.visit_date DESC, v.id DESC`
+    const strip = ({ name, article, price }: Part) => ({ name, article, price })
+    const carParts = rows.filter((r) => r.car_id === carId).map(strip)
+    const seen = new Set<string>()
+    const allParts = [...carParts, ...rows.filter((r) => r.car_id !== carId).map(strip)].filter((p) => {
+        const k = p.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true
+    })
+    return { carParts, allParts }
+}
 export async function getVisitByToken(token: string) {
     if (!/^[\w-]{10,40}$/.test(token)) return null
     const [v] = await sql<Visit[]>`SELECT * FROM visits WHERE share_token = ${token}`
