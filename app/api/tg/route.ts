@@ -5,7 +5,7 @@ import {
     carFromPayload, carsByPhone, contactKeyboard, getMasterChat, masterPayload, noKeyboard, sendToClient, setMasterChat, tgSend,
 } from '@/lib/tg'
 
-// Вебхук Telegram: https://garaggio.ru/api/tg (ставится скриптом scripts/tg-webhook.mjs с секретом в заголовке).
+// Обновления Telegram: их сюда отдаёт опросчик scripts/tg-poller.mjs (с секретом в заголовке).
 type TgUser = { id: number; first_name?: string; last_name?: string; username?: string }
 type TgMessage = {
     message_id: number; from?: TgUser; chat: { id: number; type: string }; text?: string; caption?: string

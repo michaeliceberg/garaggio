@@ -12,7 +12,7 @@ type Btn = { text: string; url?: string; request_contact?: boolean }
 type Extra = { reply_markup?: unknown; disable_web_page_preview?: boolean }
 
 export async function tgApi<T = unknown>(method: string, body: Record<string, unknown>): Promise<T> {
-    const r = await fetch(`https://api.telegram.org/bot${process.env.TG_BOT_TOKEN}/${method}`, {
+    const r = await fetch(`${process.env.TG_API_BASE || 'https://api.telegram.org'}/bot${process.env.TG_BOT_TOKEN}/${method}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store',
     })
     const j = await r.json() as { ok: boolean; result: T; description?: string; error_code?: number }
