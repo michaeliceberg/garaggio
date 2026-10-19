@@ -75,3 +75,16 @@ input[type='date']::-webkit-date-and-time-value, input[type='time']::-webkit-dat
 @media (prefers-reduced-motion: reduce) {
     .btn-magic, .btn-magic::after, .btn-magic .magic-icon, .btn-magic .magic-spark, .magic-bars i { animation: none !important; }
 }
+
+/* Нижнее меню: «таблетка» под иконкой выбранного раздела, иконка мягко подпрыгивает при выборе */
+.nav-pill { display: flex; height: 32px; width: 56px; align-items: center; justify-content: center; border-radius: 9999px; transition: background-color .3s, box-shadow .3s; }
+.nav-pill-on { background: rgba(242, 195, 91, .16); box-shadow: 0 0 14px rgba(242, 195, 91, .28); animation: nav-bounce .55s cubic-bezier(.28, .84, .42, 1); }
+.nav-plus-on { animation: nav-bounce .55s cubic-bezier(.28, .84, .42, 1); }
+@keyframes nav-bounce {
+    0% { transform: translateY(0) scale(1); }
+    30% { transform: translateY(-7px) scale(1.12); }
+    55% { transform: translateY(0) scale(.95); }
+    75% { transform: translateY(-2px) scale(1.03); }
+    100% { transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .nav-pill-on, .nav-plus-on { animation: none; } }
