@@ -14,7 +14,27 @@ body { -webkit-tap-highlight-color: transparent; }
     .btn-primary { @apply btn bg-tomato text-white shadow-[0_3px_0_#9E3524]; }
     .btn-ghost { @apply btn border border-line bg-card text-white; }
     .btn-danger { @apply btn border border-tomato/40 bg-transparent text-tomato; }
+    /* Раскрывающийся блок, который выглядит как кнопка: рамка, стрелка, плавное появление содержимого */
+    .fold { @apply rounded-xl border border-line bg-bg transition-colors; }
+    .fold[open] { @apply border-gold/40; }
+    .fold-summary { @apply flex min-h-[52px] cursor-pointer select-none list-none items-center gap-2 rounded-xl px-3 font-bold transition active:translate-y-[1px] active:bg-card; }
+    .fold-summary::-webkit-details-marker { display: none; }
+    .fold-summary::after {
+        content: ''; margin-left: auto; flex: none; width: 9px; height: 9px;
+        border-right: 2px solid #9AA7B0; border-bottom: 2px solid #9AA7B0; transform: translateY(-2px) rotate(45deg);
+        transition: transform .25s ease;
+    }
+    .fold[open] > .fold-summary::after { transform: translateY(2px) rotate(225deg); border-color: #F2C35B; }
+    .fold-body { @apply px-3 pb-3; animation: fold-in .28s ease-out; }
 }
+@keyframes fold-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+/* Где браузер умеет анимировать высоту (новый Chrome/Android) — блок ещё и плавно раздвигается и сворачивается */
+@supports (interpolate-size: allow-keywords) {
+    .fold { interpolate-size: allow-keywords; }
+    .fold::details-content { block-size: 0; overflow: hidden; transition: block-size .3s ease, content-visibility .3s allow-discrete; }
+    .fold[open]::details-content { block-size: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .fold-body { animation: none; } .fold::details-content { transition: none; } }
 
 /* «Послушать»: волшебная кнопка — переливающийся градиент, блик и искры; пока озвучиваем — светится,
    пока играет — пляшут полоски эквалайзера. */

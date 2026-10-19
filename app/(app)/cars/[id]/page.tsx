@@ -37,9 +37,9 @@ export default async function CarPage({ params }: { params: { id: string } }) {
                     </div>
                 )}
                 {(car.owner_phone || car.tg_chat_id) && (
-                    <details className="rounded-xl bg-bg p-3">
-                        <summary className="cursor-pointer list-none font-bold">💬 Связаться с клиентом</summary>
-                        <div className="mt-3"><MessageButtons phone={car.owner_phone} templates={templatesFor(car, next?.next_date)} tgCarId={car.tg_chat_id ? car.id : null} voice={ttsEnabled()} /></div>
+                    <details className="fold">
+                        <summary className="fold-summary">💬 Связаться с клиентом</summary>
+                        <div className="fold-body"><MessageButtons phone={car.owner_phone} templates={templatesFor(car, next?.next_date)} tgCarId={car.tg_chat_id ? car.id : null} voice={ttsEnabled()} /></div>
                     </details>
                 )}
                 <TgInvite car={car} />

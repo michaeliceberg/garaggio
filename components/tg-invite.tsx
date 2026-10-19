@@ -29,9 +29,9 @@ export async function TgInvite({ car }: { car: Car }) {
     const hi = car.owner_name ? `Чао, ${car.owner_name.split(' ')[0]}!` : 'Чао!'
     const text = `${hi} Это Garaggio 🤌 Подпишитесь на нашего бота — пришлём напоминание, когда пора на ТО, и отчёт после визита: ${url}`
     return (
-        <details className="rounded-xl bg-bg p-3">
-            <summary className="flex cursor-pointer list-none items-center gap-2 font-bold"><Bot size={18} className="text-[#2AABEE]" />Подписать на Telegram-бот</summary>
-            <div className="mt-3 flex flex-col gap-3">
+        <details className="fold">
+            <summary className="fold-summary"><Bot size={18} className="text-[#2AABEE]" />Подписать на Telegram-бот</summary>
+            <div className="fold-body flex flex-col gap-3">
                 <p className="text-sm text-muted">Клиент наводит камеру на QR-код — и сразу подписан на эту машину.</p>
                 <div className="mx-auto w-56 overflow-hidden rounded-xl bg-white p-2" dangerouslySetInnerHTML={{ __html: svg }} />
                 <p className="text-sm text-muted">Или отправьте приглашение:</p>

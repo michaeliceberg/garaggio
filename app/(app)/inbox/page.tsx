@@ -42,12 +42,14 @@ export default async function InboxPage() {
                     </li>
                 ))}
             </ul>
-            <details className="card p-4">
-                <summary className="flex cursor-pointer list-none items-center gap-2 font-bold"><Printer size={18} />Общий QR-код для гаража</summary>
-                <p className="mt-2 text-sm text-muted">Распечатайте и повесьте на видном месте: клиент сканирует, делится номером телефона — бот сам находит его машины.</p>
+            <details className="fold bg-card">
+                <summary className="fold-summary"><Printer size={18} />Общий QR-код для гаража</summary>
+                <div className="fold-body">
+                <p className="text-sm text-muted">Распечатайте и повесьте на видном месте: клиент сканирует, делится номером телефона — бот сам находит его машины.</p>
                 <div className="mx-auto mt-3 w-56 overflow-hidden rounded-xl bg-white p-2" dangerouslySetInnerHTML={{ __html: qr }} />
                 <p className="mt-2 text-center text-sm text-muted">{botLink().replace('https://', '')}</p>
                 {master && <p className="mt-3 text-sm text-muted">Ваш Telegram подключён. <a href={masterLink()} target="_blank" rel="noreferrer" className="text-gold">Переподключить</a></p>}
+                </div>
             </details>
         </>
     )
