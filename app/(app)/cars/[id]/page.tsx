@@ -60,7 +60,7 @@ export default async function CarPage({ params }: { params: { id: string } }) {
                     const total = partsTotal(v.parts) + v.labor_cost
                     return (
                         <li key={v.id} className="relative">
-                            <span className="absolute -left-[23px] top-4 h-3 w-3 rounded-full border-2 border-bg bg-tomato" />
+                            <span className="absolute -left-[23px] top-4 h-3 w-3 rounded-full border-2 border-bg bg-olive" />
                             <Link href={`/visits/${v.id}`} className="card block p-4">
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="font-bold">{dateRu(v.visit_date)}</span>

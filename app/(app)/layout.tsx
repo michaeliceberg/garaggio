@@ -26,8 +26,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                     <Link href="/" className="flex flex-col items-center gap-1 py-3 text-xs font-semibold text-muted"><Car size={24} />Машины</Link>
                     <Link href="/due" className="flex flex-col items-center gap-1 py-3 text-xs font-semibold text-muted"><BellRing size={24} />Пора на ТО</Link>
                     {/* главное действие — посередине, круглой кнопкой, приподнятой над панелью */}
-                    <Link href="/cars/new" aria-label="Новая машина" className="flex flex-col items-center gap-1 pb-3 text-xs font-semibold text-gold">
-                        <span className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full border-4 border-bg bg-tomato text-white shadow-[0_3px_0_#9E3524]"><Plus size={28} strokeWidth={3} /></span>
+                    <Link href="/cars/new" aria-label="Новая машина" className="flex flex-col items-center gap-1 pb-3 text-xs font-semibold text-olive">
+                        <span className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full border-4 border-bg bg-basil text-white shadow-[0_3px_0_#33541C]"><Plus size={28} strokeWidth={3} /></span>
                         Машина
                     </Link>
                     <Link href="/money" className="flex flex-col items-center gap-1 py-3 text-xs font-semibold text-muted"><Wallet size={24} />Деньги</Link>
