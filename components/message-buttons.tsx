@@ -1,28 +1,53 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MessageCircle, Send, Copy, MessageSquareText, Check, Bot, Mic, Play, Square } from 'lucide-react'
+import { MessageCircle, Send, Copy, MessageSquareText, Check, Bot, Mic, Play, Square, Share2 } from 'lucide-react'
 import { tgToCar, tgVoiceToCar } from '@/app/actions'
 import { phoneDigits, type MsgTemplate } from '@/lib/messages'
 
 // Написать клиенту: WhatsApp и SMS открываются сразу с текстом; в Telegram текст подставить нельзя —
 // копируем его и открываем чат, остаётся вставить. «Скопировать» — для Max и всего остального.
 // tgCarId — клиент подписан на бота: главная кнопка отправляет текст сразу, без переключения в мессенджер.
-// voice — можно отправить тот же текст голосовым (Chuck Miller), сначала послушав.
+// voice — тот же текст голосом Chuck Miller: «Послушать» есть всегда; подписанному на бота — «Голосовое через бот»,
+// остальным — «Поделиться голосовым» (файл уходит в WhatsApp/Telegram через меню телефона).
 export function MessageButtons({ phone, templates, tgCarId, voice }: { phone: string; templates: MsgTemplate[]; tgCarId?: number | null; voice?: boolean }) {
     const [sending, setSending] = useState<'text' | 'voice' | 'preview' | null>(null)
     const [player, setPlayer] = useState<HTMLAudioElement | null>(null)
+    // последнее озвученное: «Поделиться» после «Послушать» берёт готовый файл сразу (телефон разрешает меню
+    // «Поделиться» только сразу после нажатия, долгого ожидания озвучки оно не переживает)
+    const [last, setLast] = useState<{ text: string; blob: Blob } | null>(null)
     const stop = () => { player?.pause(); setPlayer(null) }
+    const audioFor = async (t: string) => {
+        if (last?.text === t) return last.blob
+        const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: t }) })
+        if (!r.ok) throw new Error(r.status === 502 ? await r.text() : 'Не получилось озвучить')
+        const blob = await r.blob()
+        setLast({ text: t, blob })
+        return blob
+    }
     const preview = async () => {
         if (player) return stop()
         setSending('preview')
         try {
-            const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })
-            if (!r.ok) { flash(r.status === 502 ? await r.text() : 'Не получилось озвучить'); return }
-            const a = new Audio(URL.createObjectURL(await r.blob()))
+            const a = new Audio(URL.createObjectURL(await audioFor(text)))
             a.onended = () => setPlayer(null)
             setPlayer(a); await a.play()
-        } finally { setSending(null) }
+        } catch (e) { flash((e as Error).message) } finally { setSending(null) }
+    }
+    const shareVoice = async () => {
+        const fresh = last?.text !== text
+        setSending('voice')
+        try {
+            const file = new File([await audioFor(text)], 'Garaggio.mp3', { type: 'audio/mpeg' })
+            if (navigator.canShare?.({ files: [file] })) {
+                try { await navigator.share({ files: [file] }) } catch (e) {
+                    if ((e as Error).name === 'NotAllowedError' && fresh) flash('Голосовое готово — нажмите «Поделиться» ещё раз')
+                }
+            } else {
+                const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; a.click()
+                flash('Файл скачан — отправьте его клиенту')
+            }
+        } catch (e) { flash((e as Error).message) } finally { setSending(null) }
     }
     const [tpl, setTpl] = useState(templates[0].id)
     const [text, setText] = useState(templates[0].text)
@@ -57,20 +82,26 @@ export function MessageButtons({ phone, templates, tgCarId, voice }: { phone: st
                     <Bot size={20} />{sending === 'text' ? 'Отправляем…' : 'Отправить через бот Garaggio'}
                 </button>
             )}
-            {tgCarId && voice && (
+            {voice && (
                 <div className="grid grid-cols-[auto_1fr] gap-2">
                     <button type="button" disabled={sending === 'voice' || sending === 'preview'} onClick={preview}
                         className={`${btn} border-[#2AABEE]/50 px-4 text-[#2AABEE]`} aria-label="Послушать">
                         {player ? <Square size={18} /> : <Play size={18} />}{sending === 'preview' ? 'Озвучиваем…' : player ? 'Стоп' : 'Послушать'}
                     </button>
-                    <button type="button" disabled={!!sending} className={`${btn} border-[#2AABEE]/50 text-[#2AABEE]`}
-                        onClick={async () => {
-                            setSending('voice')
-                            try { const r = await tgVoiceToCar(tgCarId, text); flash('error' in r && r.error ? r.error : 'Голосовое отправлено 🔊') }
-                            finally { setSending(null) }
-                        }}>
-                        <Mic size={18} />{sending === 'voice' ? 'Озвучиваем и отправляем…' : 'Голосовое через бот'}
-                    </button>
+                    {tgCarId ? (
+                        <button type="button" disabled={!!sending} className={`${btn} border-[#2AABEE]/50 text-[#2AABEE]`}
+                            onClick={async () => {
+                                setSending('voice')
+                                try { const r = await tgVoiceToCar(tgCarId, text); flash('error' in r && r.error ? r.error : 'Голосовое отправлено 🔊') }
+                                finally { setSending(null) }
+                            }}>
+                            <Mic size={18} />{sending === 'voice' ? 'Озвучиваем и отправляем…' : 'Голосовое через бот'}
+                        </button>
+                    ) : (
+                        <button type="button" disabled={!!sending} onClick={shareVoice} className={`${btn} border-[#2AABEE]/50 text-[#2AABEE]`}>
+                            <Share2 size={18} />{sending === 'voice' ? 'Озвучиваем…' : 'Поделиться голосовым'}
+                        </button>
+                    )}
                 </div>
             )}
             {phone && <div className="grid grid-cols-2 gap-2">
