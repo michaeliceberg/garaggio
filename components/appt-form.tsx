@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, X, UserPlus, AlertTriangle } from 'lucide-react'
+import { Search, X, UserPlus, AlertTriangle, User, Clock, Wrench } from 'lucide-react'
 import { saveAppt } from '@/app/actions'
 import { normPlate, workPresets, POWERTRAIN_LABEL, type Powertrain } from '@/lib/format'
 import { PlateBadge } from './plate'
 import { PhoneInput } from './phone-input'
+import { Section } from './form-section'
 
 type CarLite = { id: number; plate: string; brand: string; model: string; owner_name: string; owner_phone: string; powertrain: Powertrain }
 type Initial = { id?: number; car_id: number | null; client_name: string; client_phone: string; day: string; start_time: string; duration_min: number; work: string }
@@ -63,10 +64,8 @@ export function ApptForm({ cars, initial }: { cars: CarLite[]; initial: Initial 
     }
 
     return (
-        <form className="card flex flex-col gap-4 p-4" onSubmit={(e) => { e.preventDefault(); submit(false, String(new FormData(e.currentTarget).get('owner_phone') ?? '')) }}>
-            {/* кто */}
-            <div className="flex flex-col gap-2">
-                <span className="label !mb-0">Кто приедет</span>
+        <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); submit(false, String(new FormData(e.currentTarget).get('owner_phone') ?? '')) }}>
+            <Section icon={<User size={18} />} title="Кто приедет" color="#F2C35B">
                 {car ? (
                     <div className="flex items-center gap-3 rounded-xl border border-basil/60 bg-basil/10 p-3">
                         <PlateBadge plate={car.plate} />
@@ -100,20 +99,20 @@ export function ApptForm({ cars, initial }: { cars: CarLite[]; initial: Initial 
                         <button type="button" onClick={() => setNewClient(true)} className="btn-ghost min-h-[44px] text-sm"><UserPlus size={18} />Новый клиент (машины ещё нет в базе)</button>
                     </>
                 )}
-            </div>
+            </Section>
 
-            {/* когда */}
+            <Section icon={<Clock size={18} />} title="Когда" color="#53ADEF">
             <div className="grid grid-cols-2 gap-3">
                 <div className="min-w-0"><label className="label" htmlFor="day">День</label><input id="day" type="date" value={day} onChange={(e) => setDay(e.target.value)} className="input" required /></div>
                 <div className="min-w-0"><label className="label" htmlFor="time">Время</label><input id="time" type="time" step={900} value={time} onChange={(e) => setTime(e.target.value)} className="input" required /></div>
             </div>
-            <div className="-mt-1 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+            <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
                 {TIMES.map((t) => (
                     <button key={t} type="button" onClick={() => setTime(t)}
                         className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold ${time === t ? 'border-basil bg-basil text-white' : 'border-line text-muted'}`}>{t}</button>
                 ))}
             </div>
-            <div>
+            <div className="border-t border-line pt-3">
                 <span className="label">Сколько займёт</span>
                 <div className="flex flex-wrap gap-1.5">
                     {DURATIONS.map(([m, l]) => (
@@ -122,25 +121,24 @@ export function ApptForm({ cars, initial }: { cars: CarLite[]; initial: Initial 
                     ))}
                 </div>
             </div>
+            </Section>
 
-            {/* что */}
-            <div>
-                <label className="label" htmlFor="work">Что делать</label>
+            <Section icon={<Wrench size={18} />} title="Что делать" color="#8DB255">
                 {!car && (
-                    <div className="mb-2 flex gap-1.5">
+                    <div className="flex gap-1.5">
                         {(['ice', 'hybrid', 'ev'] as const).map((p) => (
                             <button key={p} type="button" onClick={() => setPtNew(p)}
                                 className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${ptNew === p ? 'border-gold bg-gold/15 text-gold' : 'border-line text-muted'}`}>{POWERTRAIN_LABEL[p]}</button>
                         ))}
                     </div>
                 )}
-                <div className="mb-1.5 flex flex-wrap gap-1.5">
+                <div className="-mb-1.5 flex flex-wrap gap-1.5">
                     {chip('Плановое ТО', 'ТО')}
                     {presets.own.map((p) => chip(p.text, p.label))}
                 </div>
-                <div className="mb-2 flex flex-wrap gap-1.5">{presets.common.map((p) => chip(p.text, p.label))}</div>
-                <textarea id="work" value={work} onChange={(e) => setWork(e.target.value)} rows={3} className="input" placeholder="Своими словами: стучит спереди справа…" />
-            </div>
+                <div className="flex flex-wrap gap-1.5">{presets.common.map((p) => chip(p.text, p.label))}</div>
+                <textarea id="work" aria-label="Что делать" value={work} onChange={(e) => setWork(e.target.value)} rows={3} className="input" placeholder="Своими словами: стучит спереди справа…" />
+            </Section>
 
             {clash && (
                 <div className="flex flex-col gap-2 rounded-xl border border-gold/50 bg-gold/10 p-3 text-sm">

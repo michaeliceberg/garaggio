@@ -9,6 +9,7 @@ import { DEFAULT_INTERVAL_KM, DEFAULT_INTERVAL_MONTHS, partsTotal, rub, toISODat
 import { compressPhoto, uploadPhoto } from '@/lib/photo-client'
 import { PhotoPicker, type PendingPhoto } from './photo-picker'
 import { VoiceInput } from './voice-input'
+import { Section } from './form-section'
 import type { VoiceParsed } from '@/lib/ai'
 
 const addMonths = (iso: string, m: number) => { const d = new Date(iso); d.setMonth(d.getMonth() + m); return toISODate(d) }
@@ -203,15 +204,5 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId
             {error && <p className="font-semibold text-tomato">{error}</p>}
             <button className="btn-primary sticky bottom-24 z-10 w-full" disabled={!!busy}>{busy ?? 'Сохранить визит'}</button>
         </form>
-    )
-}
-
-// Блок формы: цветная полоска слева + иконка и заголовок — сразу видно, где какая часть визита.
-function Section({ icon, title, color, children }: { icon: React.ReactNode; title: string; color: string; children: React.ReactNode }) {
-    return (
-        <section className="card flex flex-col gap-3 overflow-hidden p-4" style={{ boxShadow: `inset 4px 0 0 ${color}` }}>
-            <div className="flex items-center gap-2 font-black" style={{ color }}>{icon}<span>{title}</span></div>
-            {children}
-        </section>
     )
 }
