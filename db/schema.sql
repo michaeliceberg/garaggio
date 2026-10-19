@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS cars (
     created_at  timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS cars_plate_norm_idx ON cars (plate_norm);
+-- тип силовой установки: ice (ДВС), hybrid, ev (электро) — от него зависит набор типовых работ
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS powertrain text NOT NULL DEFAULT 'ice';
 
 CREATE TABLE IF NOT EXISTS visits (
     id              serial PRIMARY KEY,

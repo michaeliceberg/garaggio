@@ -1,10 +1,10 @@
 import 'server-only'
 import { sql } from './db'
-import { normPlate, type Part } from './format'
+import { normPlate, type Part, type Powertrain } from './format'
 
 export type Car = {
     id: number; plate: string; vin: string; brand: string; model: string; year: number | null; color: string
-    owner_name: string; owner_phone: string; notes: string; created_at: string
+    owner_name: string; owner_phone: string; notes: string; created_at: string; powertrain: Powertrain
 }
 export type Visit = {
     id: number; car_id: number; visit_date: string; mileage: number | null; works: string; parts: Part[]; labor_cost: number

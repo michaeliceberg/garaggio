@@ -13,7 +13,7 @@ export default async function NewVisit({ params }: { params: { id: string } }) {
                 <PlateBadge plate={car.plate} />
                 <h1 className="text-xl font-black">Новый визит</h1>
             </div>
-            <VisitForm carId={car.id} lastMileage={last?.mileage} />
+            <VisitForm carId={car.id} powertrain={car.powertrain} lastMileage={last?.mileage} />
         </>
     )
 }

@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation'
 import { Plus, Trash2 } from 'lucide-react'
 import { saveVisit } from '@/app/actions'
 import type { Visit } from '@/lib/data'
-import { DEFAULT_INTERVAL_KM, DEFAULT_INTERVAL_MONTHS, partsTotal, rub, toISODate, type Part } from '@/lib/format'
+import { DEFAULT_INTERVAL_KM, DEFAULT_INTERVAL_MONTHS, partsTotal, rub, toISODate, workPresets, type Part, type Powertrain, type WorkPreset } from '@/lib/format'
 import { compressPhoto, uploadPhoto } from '@/lib/photo-client'
 import { PhotoPicker, type PendingPhoto } from './photo-picker'
 
 const addMonths = (iso: string, m: number) => { const d = new Date(iso); d.setMonth(d.getMonth() + m); return toISODate(d) }
 const num = (s: string) => { const v = s.replace(/\s/g, ''); return v === '' ? null : Math.round(Number(v)) || null }
 
-export function VisitForm({ carId, visit, lastMileage }: { carId: number; visit?: Visit; lastMileage?: number | null }) {
+export function VisitForm({ carId, powertrain, visit, lastMileage }: { carId: number; powertrain: Powertrain; visit?: Visit; lastMileage?: number | null }) {
     const router = useRouter()
     const today = toISODate(new Date())
     const [date, setDate] = useState(visit?.visit_date ? toISODate(new Date(visit.visit_date)) : today)
@@ -35,6 +35,20 @@ export function VisitForm({ carId, visit, lastMileage }: { carId: number; visit?
     const onMileage = (v: string) => { setMileage(v); const n = num(v); if (!nextTouched) setNextKm(n ? String(n + DEFAULT_INTERVAL_KM) : '') }
     const setPart = (i: number, patch: Partial<Part>) => setParts(parts.map((p, j) => (j === i ? { ...p, ...patch } : p)))
     const total = partsTotal(parts) + (num(labor) ?? 0)
+    // Типовые работы: нажал — строка добавилась в «Что сделали», нажал ещё раз — убралась.
+    const presets = workPresets(powertrain)
+    const lines = works.split('\n').map((l) => l.trim()).filter(Boolean)
+    const has = (w: string) => lines.includes(w)
+    const toggleWork = (w: string) => setWorks((prev) => {
+        const ls = prev.split('\n').map((l) => l.trim()).filter(Boolean)
+        return (ls.includes(w) ? ls.filter((l) => l !== w) : [...ls, w]).join('\n')
+    })
+    const Chip = ({ p }: { p: WorkPreset }) => (
+        <button type="button" onClick={() => toggleWork(p.text)} title={p.text}
+            className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${has(p.text) ? 'border-olive bg-olive/20 text-olive' : 'border-line text-white/85'}`}>
+            {has(p.text) ? '✓ ' : '+ '}{p.label}
+        </button>
+    )
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -72,6 +86,9 @@ export function VisitForm({ carId, visit, lastMileage }: { carId: number; visit?
 
             <section className="card flex flex-col gap-2 p-4">
                 <label className="label">Что сделали</label>
+                <div className="flex flex-wrap gap-1.5">{presets.own.map((p) => <Chip key={p.text} p={p} />)}</div>
+                <div className="text-xs font-semibold text-muted">Колёса и тормоза</div>
+                <div className="flex flex-wrap gap-1.5">{presets.common.map((p) => <Chip key={p.text} p={p} />)}</div>
                 <textarea value={works} onChange={(e) => setWorks(e.target.value)} rows={4} className="input" placeholder="Замена масла и фильтров, проверка тормозов…" />
             </section>
 

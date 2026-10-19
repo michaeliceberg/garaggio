@@ -21,6 +21,15 @@ export function CarForm({ car, plate }: { car?: Car; plate?: string }) {
                 <Field name="model" label="Модель" value={car?.model} placeholder="ML500" />
                 <Field name="year" label="Год" value={car?.year} inputMode="numeric" placeholder="2008" />
                 <Field name="color" label="Цвет" value={car?.color} placeholder="синий" />
+                <div className="col-span-2">
+                    <label className="label" htmlFor="powertrain">Тип</label>
+                    <select id="powertrain" name="powertrain" defaultValue={car?.powertrain ?? ''} className="input">
+                        {!car && <option value="">Определить по марке</option>}
+                        <option value="ice">ДВС (бензин / дизель)</option>
+                        <option value="hybrid">Гибрид</option>
+                        <option value="ev">Электро</option>
+                    </select>
+                </div>
                 <VinInput defaultValue={car?.vin} />
             </div>
             <div className="h-px bg-line" />
