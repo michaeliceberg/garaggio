@@ -72,3 +72,21 @@ CREATE TABLE IF NOT EXISTS settings (
     key   text PRIMARY KEY,
     value text NOT NULL DEFAULT ''
 );
+
+-- Календарь записи: кто и когда приезжает. Машина может быть ещё не заведена — тогда имя и телефон клиента.
+-- status: planned (ждём), done (приехал, визит начат), cancelled (отменили). Время — московское, без часового пояса.
+CREATE TABLE IF NOT EXISTS appointments (
+    id           serial PRIMARY KEY,
+    car_id       int REFERENCES cars(id) ON DELETE SET NULL,
+    client_name  text NOT NULL DEFAULT '',
+    client_phone text NOT NULL DEFAULT '',
+    day          date NOT NULL,
+    start_time   time NOT NULL,
+    duration_min int NOT NULL DEFAULT 60,
+    work         text NOT NULL DEFAULT '',
+    status       text NOT NULL DEFAULT 'planned',
+    visit_id     int REFERENCES visits(id) ON DELETE SET NULL,
+    created_at   timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS appointments_day_idx ON appointments (day, start_time);
+CREATE INDEX IF NOT EXISTS appointments_car_idx ON appointments (car_id);

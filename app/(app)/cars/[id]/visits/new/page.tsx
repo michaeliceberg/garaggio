@@ -2,15 +2,17 @@ import { notFound } from 'next/navigation'
 import { getCar, getKnownParts, getVisits } from '@/lib/data'
 import { VisitForm } from '@/components/visit-form'
 import { VisitHeader } from '@/components/visit-header'
+import { getAppt } from '@/lib/appts'
 
-export default async function NewVisit({ params }: { params: { id: string } }) {
+export default async function NewVisit({ params, searchParams }: { params: { id: string }; searchParams: { appt?: string } }) {
     const car = await getCar(Number(params.id))
     if (!car) notFound()
-    const [[last], known] = await Promise.all([getVisits(car.id), getKnownParts(car.id)])
+    const [[last], known, appt] = await Promise.all([getVisits(car.id), getKnownParts(car.id), searchParams.appt ? getAppt(Number(searchParams.appt)) : null])
+    const fromAppt = appt?.car_id === car.id && appt.status === 'planned' ? appt : null // визит начат из записи — подставим, что собирались делать
     return (
         <>
             <VisitHeader car={car} title="Новый визит" />
-            <VisitForm carId={car.id} powertrain={car.powertrain} lastMileage={last?.mileage} known={known} />
+            <VisitForm carId={car.id} powertrain={car.powertrain} lastMileage={last?.mileage} known={known} apptId={fromAppt?.id} initialWorks={fromAppt?.work} />
         </>
     )
 }

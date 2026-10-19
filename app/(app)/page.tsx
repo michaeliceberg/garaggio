@@ -1,19 +1,30 @@
 import Link from 'next/link'
 import { Search, ChevronRight } from 'lucide-react'
 import { searchCars, getDue } from '@/lib/data'
+import { getDay, todayMsk, apptCar, apptWho } from '@/lib/appts'
 import { dateRu } from '@/lib/format'
 import { PlateBadge } from '@/components/plate'
 
 // Главная: поиск по номеру / имени / телефону / марке и список машин (свежие визиты — сверху).
 export default async function Home({ searchParams }: { searchParams: { q?: string } }) {
     const q = searchParams.q ?? ''
-    const [cars, due] = await Promise.all([searchCars(q), q ? Promise.resolve([]) : getDue()])
+    const [cars, due, today] = await Promise.all([searchCars(q), q ? Promise.resolve([]) : getDue(), q ? Promise.resolve([]) : getDay(todayMsk())])
+    const waiting = today.filter((a) => a.status === 'planned')
     return (
         <>
             <form className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={20} />
                 <input name="q" defaultValue={q} placeholder="Номер, имя, телефон или марка" className="input pl-10 text-lg uppercase placeholder:normal-case" autoComplete="off" />
             </form>
+            {!q && waiting.length > 0 && (
+                <Link href="/calendar" className="card flex items-center justify-between gap-2 border-basil/50 bg-basil/10 p-4">
+                    <span className="min-w-0">
+                        <span className="font-bold text-olive">📅 Сегодня записано: {waiting.length}</span>
+                        <span className="block truncate text-sm text-muted">{waiting.slice(0, 3).map((a) => `${a.start_time} ${apptCar(a) || apptWho(a)}`).join(' · ')}</span>
+                    </span>
+                    <ChevronRight className="shrink-0 text-olive" />
+                </Link>
+            )}
             {!q && due.length > 0 && (
                 <Link href="/due" className="card flex items-center justify-between border-gold/40 bg-gold/10 p-4">
                     <span className="font-bold text-gold">🔔 Пора на ТО: {due.length}</span>

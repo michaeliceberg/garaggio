@@ -26,3 +26,11 @@ export function phoneDigits(p: string) {
     if (d.length === 10) d = '7' + d
     return d
 }
+
+// Подтверждение записи: «Ждём вас 24 октября в 10:00 — ТО»
+export function apptText(c: MsgCar, day: string, time: string, work: string) {
+    const d = new Date(day + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' })
+    const what = work.trim() ? ` — ${work.trim().split('\n')[0].toLowerCase()}` : ''
+    const car = c.brand || c.model ? ` на ${carName(c)}` : ''
+    return `${hello(c)} Это Garaggio 🤌 Ждём вас${car} ${d} в ${time}${what}. Если планы поменяются — напишите, пожалуйста. Грацие!`
+}

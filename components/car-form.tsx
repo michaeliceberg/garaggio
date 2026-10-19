@@ -15,10 +15,12 @@ const Field = ({ name, label, value, placeholder, type = 'text', inputMode, clas
     </div>
 )
 
-export function CarForm({ car, plate }: { car?: Car; plate?: string }) {
+// owner/appt — машину заводят из записи в календаре: имя и телефон уже известны, запись потом привяжется к машине
+export function CarForm({ car, plate, owner, appt }: { car?: Car; plate?: string; owner?: { name?: string; phone?: string }; appt?: number }) {
     return (
         <form action={saveCar} className="card flex flex-col gap-4 p-4">
             {car && <input type="hidden" name="id" value={car.id} />}
+            {appt && <input type="hidden" name="appt" value={appt} />}
             <CarPhotoScan />
             <div className="grid grid-cols-2 gap-3">
                 <Field name="plate" label="Госномер" value={car?.plate ?? plate} placeholder="А123ВС77" className="col-span-2" />
@@ -40,8 +42,8 @@ export function CarForm({ car, plate }: { car?: Car; plate?: string }) {
             </div>
             <div className="h-px bg-line" />
             <div className="grid grid-cols-2 gap-3">
-                <Field name="owner_name" label="Владелец" value={car?.owner_name} placeholder="Имя" />
-                <PhoneInput defaultValue={car?.owner_phone} />
+                <Field name="owner_name" label="Владелец" value={car?.owner_name ?? owner?.name} placeholder="Имя" />
+                <PhoneInput defaultValue={car?.owner_phone ?? owner?.phone} />
             </div>
             <div>
                 <label className="label" htmlFor="notes">Заметки о машине</label>

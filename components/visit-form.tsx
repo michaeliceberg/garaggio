@@ -14,14 +14,15 @@ import type { VoiceParsed } from '@/lib/ai'
 const addMonths = (iso: string, m: number) => { const d = new Date(iso); d.setMonth(d.getMonth() + m); return toISODate(d) }
 const num = (s: string) => { const v = s.replace(/\s/g, ''); return v === '' ? null : Math.round(Number(v)) || null }
 
-export function VisitForm({ carId, powertrain, visit, lastMileage, known }: {
+export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId, initialWorks }: {
     carId: number; powertrain: Powertrain; visit?: Visit; lastMileage?: number | null; known: { carParts: Part[]; allParts: Part[] }
+    apptId?: number; initialWorks?: string // визит из записи в календаре
 }) {
     const router = useRouter()
     const today = toISODate(new Date())
     const [date, setDate] = useState(visit?.visit_date ? toISODate(new Date(visit.visit_date)) : today)
     const [mileage, setMileage] = useState(visit?.mileage?.toString() ?? '')
-    const [works, setWorks] = useState(visit?.works ?? '')
+    const [works, setWorks] = useState(visit?.works ?? initialWorks ?? '')
     const [parts, setParts] = useState<Part[]>(visit?.parts.length ? visit.parts : [])
     const [labor, setLabor] = useState(visit?.labor_cost ? String(visit.labor_cost) : '')
     const [notes, setNotes] = useState(visit?.notes ?? '')
@@ -72,7 +73,7 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known }: {
         try {
             setBusy('Сохраняем визит…')
             const id = await saveVisit({
-                id: visit?.id, car_id: carId, visit_date: date, mileage: num(mileage), works, parts, labor_cost: num(labor) ?? 0,
+                appt_id: apptId ?? null, id: visit?.id, car_id: carId, visit_date: date, mileage: num(mileage), works, parts, labor_cost: num(labor) ?? 0,
                 notes, recommendations: recs, declined, paid, next_date: nextDate || null, next_mileage: num(nextKm),
             })
             for (let i = 0; i < photos.length; i++) {

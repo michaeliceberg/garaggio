@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Phone, Pencil, Plus, Camera, AlertTriangle } from 'lucide-react'
+import { Phone, Pencil, Plus, Camera, AlertTriangle, CalendarPlus } from 'lucide-react'
+import { todayMsk, upcomingForCar } from '@/lib/appts'
 import { getCar, getVisits } from '@/lib/data'
 import { colorHex } from '@/lib/car-dicts'
 import { dateRu, km, rub, partsTotal, telHref, POWERTRAIN_LABEL } from '@/lib/format'
@@ -14,7 +15,7 @@ import { ttsEnabled } from '@/lib/tts'
 export default async function CarPage({ params }: { params: { id: string } }) {
     const car = await getCar(Number(params.id))
     if (!car) notFound()
-    const visits = await getVisits(car.id)
+    const [visits, appts] = await Promise.all([getVisits(car.id), upcomingForCar(car.id)])
     const next = visits[0]
     return (
         <>
@@ -51,7 +52,15 @@ export default async function CarPage({ params }: { params: { id: string } }) {
                 )}
             </section>
 
-            <Link href={`/cars/${car.id}/visits/new`} className="btn-primary w-full"><Plus size={20} />Новый визит</Link>
+            {appts.map((a) => (
+                <Link key={a.id} href={`/calendar?d=${a.day}`} className="card flex items-center justify-between gap-2 border-basil/50 p-3 text-sm">
+                    <span><b className="text-olive">📅 Записан:</b> {new Date(a.day + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' })}, {a.start_time}{a.work && ` — ${a.work.split('\n')[0]}`}</span>
+                </Link>
+            ))}
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+                <Link href={`/cars/${car.id}/visits/new${appts[0] && appts[0].day <= todayMsk() ? `?appt=${appts[0].id}` : ''}`} className="btn-primary"><Plus size={20} />Новый визит</Link>
+                <Link href={`/calendar/new?car=${car.id}`} className="btn-ghost px-4"><CalendarPlus size={20} />Записать</Link>
+            </div>
 
             <h2 className="mt-2 text-lg font-black">История · {visits.length}</h2>
             {visits.length === 0 && <p className="card p-4 text-center text-muted">Визитов пока не было.</p>}

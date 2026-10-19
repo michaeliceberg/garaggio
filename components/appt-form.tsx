@@ -1,0 +1,140 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Search, X, UserPlus, AlertTriangle } from 'lucide-react'
+import { saveAppt } from '@/app/actions'
+import { normPlate } from '@/lib/format'
+import { PlateBadge } from './plate'
+import { PhoneInput } from './phone-input'
+
+type CarLite = { id: number; plate: string; brand: string; model: string; owner_name: string; owner_phone: string }
+type Initial = { id?: number; car_id: number | null; client_name: string; client_phone: string; day: string; start_time: string; duration_min: number; work: string }
+
+const DURATIONS = [[30, '30 мин'], [60, '1 час'], [90, '1,5 ч'], [120, '2 часа'], [180, '3 часа'], [240, '4 часа'], [480, 'Весь день']] as const
+const WORKS = ['ТО', 'Замена масла', 'Диагностика', 'Шиномонтаж', 'Тормоза', 'Подвеска', 'Электрика']
+const TIMES = Array.from({ length: 23 }, (_, i) => `${String(9 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
+
+// Запись в календарь: машина из базы (поиск по номеру/имени/марке) или новый клиент (имя + телефон),
+// день, время кнопками, длительность, что делать. Если время занято — показываем с кем и спрашиваем.
+export function ApptForm({ cars, initial }: { cars: CarLite[]; initial: Initial }) {
+    const router = useRouter()
+    const [carId, setCarId] = useState<number | null>(initial.car_id)
+    const [newClient, setNewClient] = useState(!initial.car_id && !!(initial.client_name || initial.client_phone))
+    const [q, setQ] = useState('')
+    const [name, setName] = useState(initial.client_name)
+    const [day, setDay] = useState(initial.day)
+    const [time, setTime] = useState(initial.start_time)
+    const [duration, setDuration] = useState(initial.duration_min)
+    const [work, setWork] = useState(initial.work)
+    const [busy, setBusy] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [clash, setClash] = useState<string[] | null>(null)
+    const car = cars.find((c) => c.id === carId)
+    const found = useMemo(() => {
+        const s = q.trim().toLowerCase()
+        if (!s) return []
+        const p = normPlate(s), digits = s.replace(/\D/g, '')
+        return cars.filter((c) => normPlate(c.plate).includes(p) || `${c.brand} ${c.model} ${c.owner_name}`.toLowerCase().includes(s)
+            || (digits.length >= 4 && c.owner_phone.replace(/\D/g, '').includes(digits))).slice(0, 6)
+    }, [q, cars])
+
+    async function submit(force = false, phone = '') {
+        setBusy(true); setError(null)
+        try {
+            const r = await saveAppt({ id: initial.id, car_id: carId, client_name: name, client_phone: phone, day, start_time: time, duration_min: duration, work, force })
+            if ('conflicts' in r && r.conflicts) { setClash(r.conflicts); return }
+            if ('error' in r && r.error) { setError(r.error); return }
+            router.push(`/calendar?d=${day}`); router.refresh()
+        } finally { setBusy(false) }
+    }
+
+    return (
+        <form className="card flex flex-col gap-4 p-4" onSubmit={(e) => { e.preventDefault(); submit(false, String(new FormData(e.currentTarget).get('owner_phone') ?? '')) }}>
+            {/* кто */}
+            <div className="flex flex-col gap-2">
+                <span className="label !mb-0">Кто приедет</span>
+                {car ? (
+                    <div className="flex items-center gap-3 rounded-xl border border-basil/60 bg-basil/10 p-3">
+                        <PlateBadge plate={car.plate} />
+                        <div className="min-w-0 flex-1">
+                            <div className="truncate font-bold">{[car.brand, car.model].filter(Boolean).join(' ') || 'Машина'}</div>
+                            <div className="truncate text-sm text-muted">{[car.owner_name, car.owner_phone].filter(Boolean).join(' · ')}</div>
+                        </div>
+                        <button type="button" onClick={() => { setCarId(null); setQ('') }} className="text-muted" aria-label="Выбрать другую машину"><X size={20} /></button>
+                    </div>
+                ) : newClient ? (
+                    <div className="flex flex-col gap-3 rounded-xl border border-line p-3">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div><label className="label" htmlFor="client_name">Имя</label><input id="client_name" value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="Андрей" /></div>
+                            <PhoneInput defaultValue={initial.client_phone} />
+                        </div>
+                        <button type="button" onClick={() => setNewClient(false)} className="self-start text-sm font-semibold text-gold">← Найти машину в базе</button>
+                    </div>
+                ) : (
+                    <>
+                        <div className="relative">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={18} />
+                            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Номер, имя, телефон или марка" className="input pl-10" autoComplete="off" autoFocus />
+                        </div>
+                        {found.map((c) => (
+                            <button key={c.id} type="button" onClick={() => setCarId(c.id)} className="flex items-center gap-3 rounded-xl border border-line p-2.5 text-left active:bg-card">
+                                <PlateBadge plate={c.plate} />
+                                <span className="min-w-0 flex-1 truncate text-sm"><b>{[c.brand, c.model].filter(Boolean).join(' ')}</b> {c.owner_name && <span className="text-muted">· {c.owner_name}</span>}</span>
+                            </button>
+                        ))}
+                        {q && found.length === 0 && <p className="text-sm text-muted">Не нашлось.</p>}
+                        <button type="button" onClick={() => setNewClient(true)} className="btn-ghost min-h-[44px] text-sm"><UserPlus size={18} />Новый клиент (машины ещё нет в базе)</button>
+                    </>
+                )}
+            </div>
+
+            {/* когда */}
+            <div className="grid grid-cols-2 gap-3">
+                <div><label className="label" htmlFor="day">День</label><input id="day" type="date" value={day} onChange={(e) => setDay(e.target.value)} className="input" required /></div>
+                <div><label className="label" htmlFor="time">Время</label><input id="time" type="time" step={900} value={time} onChange={(e) => setTime(e.target.value)} className="input" required /></div>
+            </div>
+            <div className="-mt-1 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+                {TIMES.map((t) => (
+                    <button key={t} type="button" onClick={() => setTime(t)}
+                        className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold ${time === t ? 'border-basil bg-basil text-white' : 'border-line text-muted'}`}>{t}</button>
+                ))}
+            </div>
+            <div>
+                <span className="label">Сколько займёт</span>
+                <div className="flex flex-wrap gap-1.5">
+                    {DURATIONS.map(([m, l]) => (
+                        <button key={m} type="button" onClick={() => setDuration(m)}
+                            className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${duration === m ? 'border-gold bg-gold/15 text-gold' : 'border-line text-muted'}`}>{l}</button>
+                    ))}
+                </div>
+            </div>
+
+            {/* что */}
+            <div>
+                <label className="label" htmlFor="work">Что делать</label>
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                    {WORKS.map((w) => (
+                        <button key={w} type="button" onClick={() => setWork((s) => (s.includes(w) ? s : s ? `${s}, ${w.toLowerCase()}` : w))}
+                            className="rounded-full border border-line px-3 py-1.5 text-sm font-semibold text-muted active:border-gold">{w}</button>
+                    ))}
+                </div>
+                <textarea id="work" value={work} onChange={(e) => setWork(e.target.value)} rows={2} className="input" placeholder="Например: ТО, стучит спереди справа" />
+            </div>
+
+            {clash && (
+                <div className="flex flex-col gap-2 rounded-xl border border-gold/50 bg-gold/10 p-3 text-sm">
+                    <div className="flex items-center gap-2 font-bold text-gold"><AlertTriangle size={18} />В это время уже записаны:</div>
+                    <ul className="list-inside list-disc">{clash.map((c) => <li key={c}>{c}</li>)}</ul>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button type="button" onClick={() => setClash(null)} className="btn-ghost min-h-[44px] text-sm">Другое время</button>
+                        <button type="button" disabled={busy} className="btn-primary min-h-[44px] text-sm"
+                            onClick={(e) => submit(true, String(new FormData(e.currentTarget.form!).get('owner_phone') ?? ''))}>Всё равно</button>
+                    </div>
+                </div>
+            )}
+            {error && <p className="font-semibold text-tomato">{error}</p>}
+            {!clash && <button className="btn-primary" disabled={busy}>{busy ? 'Сохраняем…' : initial.id ? 'Сохранить запись' : 'Записать'}</button>}
+        </form>
+    )
+}

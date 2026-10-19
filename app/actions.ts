@@ -10,6 +10,7 @@ import { endSession, requireAuth } from '@/lib/auth'
 import { parseVoiceText, type VoiceParsed } from '@/lib/ai'
 import { sendToClient, sendVoiceToClient } from '@/lib/tg'
 import { synthesize } from '@/lib/tts'
+import { apptCar, apptWho, conflicts, endTime } from '@/lib/appts'
 import { formatPhone, guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
@@ -29,6 +30,8 @@ export async function saveCar(f: FormData) {
     let carId = id
     if (id) await sql`UPDATE cars SET ${sql(v)} WHERE id = ${id}`
     else [{ id: carId }] = await sql<{ id: number }[]>`INSERT INTO cars ${sql(v)} RETURNING id`
+    const appt = int(f, 'appt') // машину завели из записи в календаре — привязываем запись
+    if (appt) { await sql`UPDATE appointments SET car_id = ${carId}, client_name = '', client_phone = '' WHERE id = ${appt}`; revalidatePath('/calendar') }
     revalidatePath('/')
     redirect(`/cars/${carId}`)
 }
@@ -47,6 +50,7 @@ export async function deleteCar(f: FormData) {
 export async function saveVisit(input: {
     id?: number; car_id: number; visit_date: string; mileage: number | null; works: string; parts: Part[]; labor_cost: number
     notes: string; recommendations: string; declined: boolean; paid: boolean; next_date: string | null; next_mileage: number | null
+    appt_id?: number | null // визит начат из записи в календаре — отмечаем её «приехал»
 }) {
     requireAuth()
     const parts = input.parts.filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), article: (p.article ?? '').trim(), price: Math.round(Number(p.price) || 0) }))
@@ -57,6 +61,10 @@ export async function saveVisit(input: {
     }
     if (input.id) { await sql`UPDATE visits SET ${sql(v)} WHERE id = ${input.id}`; revalidatePath(`/cars/${input.car_id}`); return input.id }
     const [{ id }] = await sql<{ id: number }[]>`INSERT INTO visits ${sql(v)} RETURNING id`
+    if (input.appt_id) {
+        await sql`UPDATE appointments SET status = 'done', visit_id = ${id}, car_id = ${input.car_id} WHERE id = ${input.appt_id}`
+        revalidatePath('/calendar')
+    }
     revalidatePath(`/cars/${input.car_id}`)
     return id
 }
@@ -142,4 +150,40 @@ export async function tgVoiceToCar(carId: number, text: string) {
     } catch (e) { return { error: (e as Error).message } }
     revalidatePath('/inbox'); revalidatePath(`/inbox/${car.tg_chat_id}`)
     return { ok: true }
+}
+
+// Календарь записи. Пересечение по времени не запрещаем, но сначала показываем мастеру, с кем накладывается.
+export async function saveAppt(input: {
+    id?: number; car_id: number | null; client_name: string; client_phone: string; day: string; start_time: string
+    duration_min: number; work: string; force?: boolean
+}) {
+    requireAuth()
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.day) || !/^\d{2}:\d{2}$/.test(input.start_time)) return { error: 'Укажите день и время' }
+    if (!input.car_id && !input.client_name.trim() && !input.client_phone.trim()) return { error: 'Выберите машину или впишите клиента' }
+    const duration = Math.min(Math.max(Math.round(input.duration_min) || 60, 15), 720)
+    if (!input.force) {
+        const busy = await conflicts(input.day, input.start_time, duration, input.id)
+        if (busy.length) return { conflicts: busy.map((a) => `${a.start_time}–${endTime(a.start_time, a.duration_min)} ${[apptCar(a), a.plate].filter(Boolean).join(' ') || apptWho(a)}`) }
+    }
+    const v = {
+        car_id: input.car_id, client_name: input.car_id ? '' : input.client_name.trim(), client_phone: input.car_id ? '' : formatPhone(input.client_phone),
+        day: input.day, start_time: input.start_time, duration_min: duration, work: input.work.trim(),
+    }
+    let id = input.id
+    if (id) await sql`UPDATE appointments SET ${sql(v)} WHERE id = ${id}`
+    else [{ id }] = await sql<{ id: number }[]>`INSERT INTO appointments ${sql(v)} RETURNING id`
+    revalidatePath('/calendar'); revalidatePath('/'); if (input.car_id) revalidatePath(`/cars/${input.car_id}`)
+    return { ok: true, id, day: input.day }
+}
+export async function setApptStatus(id: number, status: 'planned' | 'cancelled') {
+    requireAuth()
+    await sql`UPDATE appointments SET status = ${status} WHERE id = ${id}`
+    revalidatePath('/calendar'); revalidatePath('/')
+}
+export async function deleteAppt(f: FormData) {
+    requireAuth()
+    const id = int(f, 'id')
+    const [a] = id ? await sql<{ day: string }[]>`DELETE FROM appointments WHERE id = ${id} RETURNING day::text AS day` : []
+    revalidatePath('/calendar'); revalidatePath('/')
+    redirect(`/calendar${a ? `?d=${a.day}` : ''}`)
 }
