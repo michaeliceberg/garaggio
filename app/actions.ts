@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
 import { endSession, requireAuth } from '@/lib/auth'
+import { parseVoiceText, type VoiceParsed } from '@/lib/ai'
 import { guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
@@ -57,6 +58,19 @@ export async function saveVisit(input: {
     revalidatePath(`/cars/${input.car_id}`)
     return id
 }
+// Голосовой ввод: распознанный телефоном текст → поля визита. null — нейросеть недоступна (форма просто вставит текст).
+export async function parseVoice(text: string, carId: number): Promise<VoiceParsed | null> {
+    requireAuth()
+    if (!process.env.ANTHROPIC_API_KEY || !text.trim()) return null
+    const [car] = await sql<{ brand: string; model: string; powertrain: string }[]>`SELECT brand, model, powertrain FROM cars WHERE id = ${carId}`
+    try {
+        return await parseVoiceText(text.slice(0, 4000), car ? `${car.brand} ${car.model} (${car.powertrain})` : 'неизвестно')
+    } catch (e) {
+        console.error('parseVoice', e)
+        return null
+    }
+}
+
 // Ссылка «отчёт клиенту»: случайный токен, один на визит (повторный вызов — та же ссылка).
 export async function ensureShareToken(visitId: number) {
     requireAuth()

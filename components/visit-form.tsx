@@ -8,6 +8,8 @@ import type { Visit } from '@/lib/data'
 import { DEFAULT_INTERVAL_KM, DEFAULT_INTERVAL_MONTHS, partsTotal, rub, toISODate, workPresets, type Part, type Powertrain, type WorkPreset } from '@/lib/format'
 import { compressPhoto, uploadPhoto } from '@/lib/photo-client'
 import { PhotoPicker, type PendingPhoto } from './photo-picker'
+import { VoiceInput } from './voice-input'
+import type { VoiceParsed } from '@/lib/ai'
 
 const addMonths = (iso: string, m: number) => { const d = new Date(iso); d.setMonth(d.getMonth() + m); return toISODate(d) }
 const num = (s: string) => { const v = s.replace(/\s/g, ''); return v === '' ? null : Math.round(Number(v)) || null }
@@ -71,6 +73,20 @@ export function VisitForm({ carId, powertrain, visit, lastMileage }: { carId: nu
         }
     }
 
+    // Голосовой ввод: добавляем к уже введённому, ничего не затираем
+    const applyVoice = (v: VoiceParsed | null, text: string) => {
+        if (!v) { setWorks((prev) => [prev.trim(), text].filter(Boolean).join('\n')); return }
+        setWorks((prev) => {
+            const ls = prev.split('\n').map((l) => l.trim()).filter(Boolean)
+            return [...ls, ...v.works.filter((w) => !ls.includes(w))].join('\n')
+        })
+        if (v.parts.length) setParts((prev) => [...prev.filter((p) => p.name.trim()), ...v.parts])
+        if (v.labor_cost != null && !num(labor)) setLabor(String(v.labor_cost))
+        if (v.mileage != null && !num(mileage)) onMileage(String(v.mileage))
+        if (v.notes) setNotes((prev) => [prev.trim(), v.notes].filter(Boolean).join('\n'))
+        if (v.recommendations) setRecs((prev) => [prev.trim(), v.recommendations].filter(Boolean).join('\n'))
+    }
+
     // Быстрые кнопки «План на будущее»: срок от даты визита и пробег от текущего
     const setNextIn = (months: number) => { setNextTouched(true); setNextDate(addMonths(date, months)) }
     const setNextPlus = (k: number) => { const m = num(mileage); if (m) { setNextTouched(true); setNextKm(String(m + k)) } }
@@ -92,6 +108,7 @@ export function VisitForm({ carId, powertrain, visit, lastMileage }: { carId: nu
             </Section>
 
             <Section icon={<Wrench size={18} />} title="Работы и детали" color="#E5533D">
+                <VoiceInput carId={carId} onResult={applyVoice} />
                 <div className="flex flex-wrap gap-1.5">{presets.own.map((p) => <Chip key={p.text} p={p} />)}</div>
                 <div className="text-xs font-semibold text-muted">Колёса и тормоза</div>
                 <div className="flex flex-wrap gap-1.5">{presets.common.map((p) => <Chip key={p.text} p={p} />)}</div>
