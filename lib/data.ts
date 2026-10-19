@@ -7,7 +7,7 @@ export type Car = {
     owner_name: string; owner_phone: string; notes: string; created_at: string; powertrain: Powertrain
 }
 export type Visit = {
-    id: number; car_id: number; visit_date: string; mileage: number | null; works: string; parts: Part[]; labor_cost: number
+    id: number; car_id: number; visit_date: string; mileage: number | null; works: string; parts: Part[]; labor_cost: number; paid: boolean
     notes: string; recommendations: string; declined: boolean; next_date: string | null; next_mileage: number | null
     share_token: string | null
 }
@@ -19,7 +19,8 @@ export async function searchCars(q: string) {
         SELECT c.*, (SELECT max(visit_date) FROM visits v WHERE v.car_id = c.id) AS last_visit
         FROM cars c ORDER BY coalesce((SELECT max(created_at) FROM visits v WHERE v.car_id = c.id), c.created_at) DESC LIMIT 50`
     const like = `%${q.trim().toLowerCase()}%`
-    const digits = q.replace(/\D/g, '') // телефон ищем по цифрам, без пробелов и дефисов
+    const raw = q.replace(/\D/g, '') // телефон ищем по цифрам, без пробелов и дефисов; 8916… = 7916…
+    const digits = raw.length >= 11 && raw[0] === '8' ? '7' + raw.slice(1) : raw
     return sql<(Car & { last_visit: string | null })[]>`
         SELECT c.*, (SELECT max(visit_date) FROM visits v WHERE v.car_id = c.id) AS last_visit
         FROM cars c
@@ -55,6 +56,18 @@ export async function getKnownParts(carId: number) {
         const k = p.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true
     })
     return { carParts, allParts }
+}
+// Деньги за месяц (month = 'YYYY-MM'): выручка, работа, детали, число визитов + все неоплаченные визиты.
+export type MoneyMonth = { month: string; visits: number; labor: number; parts: number }
+export async function getMoney() {
+    const months = await sql<MoneyMonth[]>`
+        SELECT to_char(visit_date, 'YYYY-MM') AS month, count(*)::int AS visits, coalesce(sum(labor_cost), 0)::int AS labor,
+               coalesce(sum((SELECT coalesce(sum((p->>'price')::int), 0) FROM jsonb_array_elements(parts) p)), 0)::int AS parts
+        FROM visits GROUP BY 1 ORDER BY 1 DESC LIMIT 12`
+    const unpaid = await sql<{ id: number; car_id: number; visit_date: string; labor_cost: number; parts: Part[]; plate: string; brand: string; model: string; owner_name: string }[]>`
+        SELECT v.id, v.car_id, v.visit_date, v.labor_cost, v.parts, c.plate, c.brand, c.model, c.owner_name
+        FROM visits v JOIN cars c ON c.id = v.car_id WHERE NOT v.paid ORDER BY v.visit_date, v.id`
+    return { months, unpaid }
 }
 export async function getVisitByToken(token: string) {
     if (!/^[\w-]{10,40}$/.test(token)) return null

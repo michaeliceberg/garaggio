@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
 import { endSession, requireAuth } from '@/lib/auth'
 import { parseVoiceText, type VoiceParsed } from '@/lib/ai'
-import { guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
+import { formatPhone, guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
 const int = (f: FormData, k: string) => { const v = str(f, k).replace(/\s/g, ''); return v === '' ? null : Math.round(Number(v)) || null }
@@ -22,7 +22,7 @@ export async function saveCar(f: FormData) {
     const v = {
         plate, plate_norm: normPlate(plate), vin: normVin(str(f, 'vin')), brand: str(f, 'brand'), model: str(f, 'model'),
         year: int(f, 'year'), color: str(f, 'color'),
-        powertrain: ['ice', 'hybrid', 'ev'].includes(str(f, 'powertrain')) ? str(f, 'powertrain') : guessPowertrain(str(f, 'brand'), str(f, 'model')), owner_name: str(f, 'owner_name'), owner_phone: str(f, 'owner_phone'), notes: str(f, 'notes'),
+        powertrain: ['ice', 'hybrid', 'ev'].includes(str(f, 'powertrain')) ? str(f, 'powertrain') : guessPowertrain(str(f, 'brand'), str(f, 'model')), owner_name: str(f, 'owner_name'), owner_phone: formatPhone(str(f, 'owner_phone')), notes: str(f, 'notes'),
     }
     let carId = id
     if (id) await sql`UPDATE cars SET ${sql(v)} WHERE id = ${id}`
@@ -44,14 +44,14 @@ export async function deleteCar(f: FormData) {
 // Визит создаётся/правится из клиентской формы: возвращаем id, фото форма догружает следом.
 export async function saveVisit(input: {
     id?: number; car_id: number; visit_date: string; mileage: number | null; works: string; parts: Part[]; labor_cost: number
-    notes: string; recommendations: string; declined: boolean; next_date: string | null; next_mileage: number | null
+    notes: string; recommendations: string; declined: boolean; paid: boolean; next_date: string | null; next_mileage: number | null
 }) {
     requireAuth()
     const parts = input.parts.filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), article: (p.article ?? '').trim(), price: Math.round(Number(p.price) || 0) }))
     const v = {
         car_id: input.car_id, visit_date: input.visit_date, mileage: input.mileage, works: input.works.trim(), parts: sql.json(parts),
         labor_cost: Math.round(input.labor_cost || 0), notes: input.notes.trim(), recommendations: input.recommendations.trim(),
-        declined: input.declined, next_date: input.next_date || null, next_mileage: input.next_mileage,
+        declined: input.declined, paid: input.paid, next_date: input.next_date || null, next_mileage: input.next_mileage,
     }
     if (input.id) { await sql`UPDATE visits SET ${sql(v)} WHERE id = ${input.id}`; revalidatePath(`/cars/${input.car_id}`); return input.id }
     const [{ id }] = await sql<{ id: number }[]>`INSERT INTO visits ${sql(v)} RETURNING id`
@@ -80,6 +80,11 @@ export async function ensureShareToken(visitId: number) {
     const token = crypto.randomBytes(12).toString('base64url')
     await sql`UPDATE visits SET share_token = ${token} WHERE id = ${visitId}`
     return token
+}
+export async function setPaid(visitId: number, paid: boolean) {
+    requireAuth()
+    const [v] = await sql<{ car_id: number }[]>`UPDATE visits SET paid = ${paid} WHERE id = ${visitId} RETURNING car_id`
+    revalidatePath('/money'); if (v) revalidatePath(`/cars/${v.car_id}`); revalidatePath(`/visits/${visitId}`)
 }
 export async function deleteVisit(f: FormData) {
     requireAuth()

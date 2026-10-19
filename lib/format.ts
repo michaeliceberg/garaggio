@@ -73,3 +73,14 @@ export function workPresets(p: Powertrain) {
     const tires = month >= 8 || month <= 1 ? TIRES_FALL : [TIRES_FALL[1], TIRES_FALL[0]]
     return { own, common: [...tires, ...COMMON_WORKS] }
 }
+
+// Телефон: всегда «+7 916 099 19 97». 8… и 9… превращаем в +7…; чужие коды (не 7) оставляем просто цифрами с плюсом.
+export function formatPhone(s: string) {
+    let d = s.replace(/\D/g, '')
+    if (!d) return ''
+    if (d[0] === '8') d = '7' + d.slice(1)
+    else if (d[0] === '9') d = '7' + d
+    if (d[0] !== '7') return '+' + d.slice(0, 15)
+    const r = d.slice(1, 11)
+    return ['+7', r.slice(0, 3), r.slice(3, 6), r.slice(6, 8), r.slice(8, 10)].filter(Boolean).join(' ')
+}

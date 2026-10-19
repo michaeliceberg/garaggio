@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Car, BellRing, Plus, LogOut } from 'lucide-react'
+import { Car, BellRing, Plus, LogOut, Wallet } from 'lucide-react'
 import { requireAuth } from '@/lib/auth'
 import { logout } from '../actions'
 
@@ -19,10 +19,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </header>
             <main className="flex flex-col gap-4 p-4">{children}</main>
             <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-                <div className="mx-auto grid max-w-2xl grid-cols-3">
+                <div className="mx-auto grid max-w-2xl grid-cols-4">
                     <Link href="/" className="flex flex-col items-center gap-1 py-3 text-xs font-semibold text-muted"><Car size={24} />Машины</Link>
                     <Link href="/cars/new" className="flex flex-col items-center gap-1 py-3 text-xs font-semibold text-gold"><Plus size={24} />Новая машина</Link>
                     <Link href="/due" className="flex flex-col items-center gap-1 py-3 text-xs font-semibold text-muted"><BellRing size={24} />Пора на ТО</Link>
+                    <Link href="/money" className="flex flex-col items-center gap-1 py-3 text-xs font-semibold text-muted"><Wallet size={24} />Деньги</Link>
                 </div>
             </nav>
         </div>

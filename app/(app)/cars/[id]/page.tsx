@@ -67,6 +67,7 @@ export default async function CarPage({ params }: { params: { id: string } }) {
                                 <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
                                     {total > 0 && <span className="font-semibold text-olive">{rub(total)}</span>}
                                     {v.photo_count > 0 && <span className="flex items-center gap-1 text-muted"><Camera size={14} />{v.photo_count}</span>}
+                                    {!v.paid && <span className="rounded-md bg-tomato/15 px-2 py-0.5 font-bold text-tomato">не оплачено</span>}
                                     {v.declined && <span className="flex items-center gap-1 text-gold"><AlertTriangle size={14} />отказ от рекомендации</span>}
                                 </div>
                             </Link>

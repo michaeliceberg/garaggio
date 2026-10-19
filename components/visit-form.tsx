@@ -27,6 +27,7 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known }: {
     const [notes, setNotes] = useState(visit?.notes ?? '')
     const [recs, setRecs] = useState(visit?.recommendations ?? '')
     const [declined, setDeclined] = useState(visit?.declined ?? false)
+    const [paid, setPaid] = useState(visit?.paid ?? true)
     // следующее ТО подставляем сами (полгода / +10 000 км), пока мастер не поменял руками
     const [nextDate, setNextDate] = useState(visit?.next_date ? toISODate(new Date(visit.next_date)) : addMonths(today, DEFAULT_INTERVAL_MONTHS))
     const [nextKm, setNextKm] = useState(visit?.next_mileage?.toString() ?? '')
@@ -72,7 +73,7 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known }: {
             setBusy('Сохраняем визит…')
             const id = await saveVisit({
                 id: visit?.id, car_id: carId, visit_date: date, mileage: num(mileage), works, parts, labor_cost: num(labor) ?? 0,
-                notes, recommendations: recs, declined, next_date: nextDate || null, next_mileage: num(nextKm),
+                notes, recommendations: recs, declined, paid, next_date: nextDate || null, next_mileage: num(nextKm),
             })
             for (let i = 0; i < photos.length; i++) {
                 setBusy(`Загружаем фото ${i + 1} из ${photos.length}…`)
@@ -152,6 +153,10 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known }: {
                         <div className="text-lg font-black text-olive">{rub(total)}</div>
                     </div>
                 </div>
+                <label className={`flex items-center gap-3 rounded-xl p-3 ${paid ? 'bg-bg' : 'bg-tomato/15'}`}>
+                    <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} className="h-6 w-6 accent-olive" />
+                    <span className="text-sm">{paid ? <>Клиент <b>оплатил</b></> : <b className="text-tomato">Ещё не оплачено — попадёт в «Деньги → Долги»</b>}</span>
+                </label>
             </Section>
 
             <Section icon={<Camera size={18} />} title="Фото" color="#8DB255">

@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS visits (
 CREATE INDEX IF NOT EXISTS visits_car_idx ON visits (car_id, visit_date DESC);
 -- секретная ссылка «отчёт клиенту» (/r/<token>), создаётся по кнопке
 ALTER TABLE visits ADD COLUMN IF NOT EXISTS share_token text UNIQUE;
+-- оплачен ли визит (старые считаем оплаченными); неоплаченные видны на странице «Деньги»
+ALTER TABLE visits ADD COLUMN IF NOT EXISTS paid boolean NOT NULL DEFAULT true;
 
 CREATE TABLE IF NOT EXISTS photos (
     id         serial PRIMARY KEY,
