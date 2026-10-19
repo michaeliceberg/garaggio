@@ -8,6 +8,7 @@ import { PlateBadge } from '@/components/plate'
 import { MessageButtons } from '@/components/message-buttons'
 import { templatesFor } from '@/lib/messages'
 import { TgInvite } from '@/components/tg-invite'
+import { ttsEnabled } from '@/lib/tts'
 
 // Карточка машины: данные + вся история визитов лентой (свежие сверху).
 export default async function CarPage({ params }: { params: { id: string } }) {
@@ -38,7 +39,7 @@ export default async function CarPage({ params }: { params: { id: string } }) {
                 {(car.owner_phone || car.tg_chat_id) && (
                     <details className="rounded-xl bg-bg p-3">
                         <summary className="cursor-pointer list-none font-bold">✉️ Написать клиенту</summary>
-                        <div className="mt-3"><MessageButtons phone={car.owner_phone} templates={templatesFor(car, next?.next_date)} tgCarId={car.tg_chat_id ? car.id : null} /></div>
+                        <div className="mt-3"><MessageButtons phone={car.owner_phone} templates={templatesFor(car, next?.next_date)} tgCarId={car.tg_chat_id ? car.id : null} voice={ttsEnabled()} /></div>
                     </details>
                 )}
                 <TgInvite car={car} />

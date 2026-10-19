@@ -95,3 +95,23 @@ export async function unreadCount() {
     const [r] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM tg_messages WHERE NOT out AND NOT seen`
     return r.n
 }
+
+// Голосовое клиенту: звук + тот же текст подписью (подпись в Telegram — до 1024 знаков).
+export async function sendVoiceToClient(chatId: string, audio: Buffer, text: string) {
+    const form = new FormData()
+    form.append('chat_id', chatId)
+    form.append('voice', new Blob([audio], { type: 'audio/mpeg' }), 'garaggio.mp3')
+    if (text.length <= 1024) form.append('caption', text)
+    const r = await fetch(`${process.env.TG_API_BASE || 'https://api.telegram.org'}/bot${process.env.TG_BOT_TOKEN}/sendVoice`, { method: 'POST', body: form, cache: 'no-store' })
+    const j = await r.json() as { ok: boolean; description?: string; error_code?: number }
+    if (!j.ok) {
+        if (j.error_code === 403) {
+            await sql`UPDATE cars SET tg_chat_id = NULL WHERE tg_chat_id = ${chatId}`
+            throw new Error('Клиент отключил бота — подписка снята')
+        }
+        if (/VOICE_MESSAGES_FORBIDDEN/.test(j.description ?? '')) throw new Error('Клиент запретил голосовые в Telegram — отправьте текстом')
+        throw new Error(j.description || 'telegram error')
+    }
+    if (text.length > 1024) await tgSend(chatId, text)
+    await sql`INSERT INTO tg_messages (chat_id, out, text, seen) VALUES (${chatId}, true, ${'🔊 ' + text}, true)`
+}

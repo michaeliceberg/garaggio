@@ -8,7 +8,8 @@ import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
 import { endSession, requireAuth } from '@/lib/auth'
 import { parseVoiceText, type VoiceParsed } from '@/lib/ai'
-import { sendToClient } from '@/lib/tg'
+import { sendToClient, sendVoiceToClient } from '@/lib/tg'
+import { synthesize } from '@/lib/tts'
 import { formatPhone, guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
@@ -126,4 +127,19 @@ export async function tgUnlinkCar(carId: number) {
     requireAuth()
     await sql`UPDATE cars SET tg_chat_id = NULL WHERE id = ${carId}`
     revalidatePath(`/cars/${carId}`); revalidatePath('/inbox')
+}
+// Голосовое через бота: озвучиваем Chuck Miller'ом (повторный текст берётся из кеша) и отправляем с подписью.
+export async function tgVoiceToCar(carId: number, text: string) {
+    requireAuth()
+    const t = text.trim()
+    if (!t) return { error: 'Пустое сообщение' }
+    if (t.length > 1500) return { error: 'Слишком длинный текст для голосового' }
+    const [car] = await sql<{ tg_chat_id: string | null }[]>`SELECT tg_chat_id::text FROM cars WHERE id = ${carId}`
+    if (!car?.tg_chat_id) return { error: 'Клиент не подписан на бота' }
+    try {
+        const { audio } = await synthesize(t)
+        await sendVoiceToClient(car.tg_chat_id, audio, t)
+    } catch (e) { return { error: (e as Error).message } }
+    revalidatePath('/inbox'); revalidatePath(`/inbox/${car.tg_chat_id}`)
+    return { ok: true }
 }

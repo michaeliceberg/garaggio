@@ -5,6 +5,7 @@ import { dateRu, km, telHref } from '@/lib/format'
 import { PlateBadge } from '@/components/plate'
 import { MessageButtons } from '@/components/message-buttons'
 import { dueText } from '@/lib/messages'
+import { ttsEnabled } from '@/lib/tts'
 
 // Кого пора звать: срок ТО через 14 дней или уже прошёл — по дате или по прикинутому пробегу.
 export default async function DuePage() {
@@ -36,7 +37,7 @@ export default async function DuePage() {
                                         <span>✉️ Написать клиенту{c.tg_chat_id && ' · 🤖'}</span>
                                         {c.owner_phone ? <a href={telHref(c.owner_phone)} className="flex items-center gap-1 text-sm text-muted"><Phone size={16} />{c.owner_phone}</a> : <span className="text-sm text-[#2AABEE]">Telegram</span>}
                                     </summary>
-                                    <div className="mt-2"><MessageButtons phone={c.owner_phone} templates={[{ id: 'due', label: 'Пора на ТО', text: dueText(c, c.next_date) }]} tgCarId={c.tg_chat_id ? c.id : null} /></div>
+                                    <div className="mt-2"><MessageButtons phone={c.owner_phone} templates={[{ id: 'due', label: 'Пора на ТО', text: dueText(c, c.next_date) }]} tgCarId={c.tg_chat_id ? c.id : null} voice={ttsEnabled()} /></div>
                                 </details>
                             ) : <p className="text-sm text-muted">Телефон не указан</p>}
                         </li>
