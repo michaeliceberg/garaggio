@@ -1,5 +1,6 @@
 import 'server-only'
 import { sql } from './db'
+import type { Powertrain } from './format'
 
 // Календарь записи. День и время храним московскими (date + time), чтобы не путаться с часовыми поясами.
 export type Appt = {
@@ -56,7 +57,7 @@ export function endTime(start: string, duration: number) {
 export const DURATIONS = [[30, '30 мин'], [60, '1 час'], [90, '1,5 часа'], [120, '2 часа'], [180, '3 часа'], [240, '4 часа'], [480, 'Весь день']] as const
 export const WORK_DAY = { from: '09:00', to: '20:00' }
 // Все машины коротко — для выбора в форме записи
-export type CarLite = { id: number; plate: string; brand: string; model: string; owner_name: string; owner_phone: string }
+export type CarLite = { id: number; plate: string; brand: string; model: string; owner_name: string; owner_phone: string; powertrain: Powertrain }
 export async function carsLite() {
-    return sql<CarLite[]>`SELECT id, plate, brand, model, owner_name, owner_phone FROM cars ORDER BY plate`
+    return sql<CarLite[]>`SELECT id, plate, brand, model, owner_name, owner_phone, powertrain FROM cars ORDER BY plate`
 }

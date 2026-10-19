@@ -4,15 +4,14 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, X, UserPlus, AlertTriangle } from 'lucide-react'
 import { saveAppt } from '@/app/actions'
-import { normPlate } from '@/lib/format'
+import { normPlate, workPresets, POWERTRAIN_LABEL, type Powertrain } from '@/lib/format'
 import { PlateBadge } from './plate'
 import { PhoneInput } from './phone-input'
 
-type CarLite = { id: number; plate: string; brand: string; model: string; owner_name: string; owner_phone: string }
+type CarLite = { id: number; plate: string; brand: string; model: string; owner_name: string; owner_phone: string; powertrain: Powertrain }
 type Initial = { id?: number; car_id: number | null; client_name: string; client_phone: string; day: string; start_time: string; duration_min: number; work: string }
 
 const DURATIONS = [[30, '30 мин'], [60, '1 час'], [90, '1,5 ч'], [120, '2 часа'], [180, '3 часа'], [240, '4 часа'], [480, 'Весь день']] as const
-const WORKS = ['ТО', 'Замена масла', 'Диагностика', 'Шиномонтаж', 'Тормоза', 'Подвеска', 'Электрика']
 const TIMES = Array.from({ length: 23 }, (_, i) => `${String(9 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
 
 // Запись в календарь: машина из базы (поиск по номеру/имени/марке) или новый клиент (имя + телефон),
@@ -31,6 +30,20 @@ export function ApptForm({ cars, initial }: { cars: CarLite[]; initial: Initial 
     const [error, setError] = useState<string | null>(null)
     const [clash, setClash] = useState<string[] | null>(null)
     const car = cars.find((c) => c.id === carId)
+    // Работы — те же кнопки, что в визите: свои для ДВС / гибрида / электро + общие (шины по сезону, тормоза…).
+    // Пишем полным текстом по строке — потом «Начать визит» подставит их в визит, и там они уже будут отмечены.
+    const [ptNew, setPtNew] = useState<Powertrain>('ice')
+    const pt = car?.powertrain ?? ptNew
+    const presets = workPresets(pt)
+    const lines = work.split('\n').map((l) => l.trim()).filter(Boolean)
+    const toggleWork = (t: string) => setWork((prev) => {
+        const ls = prev.split('\n').map((l) => l.trim()).filter(Boolean)
+        return (ls.includes(t) ? ls.filter((l) => l !== t) : [...ls, t]).join('\n')
+    })
+    const chip = (t: string, label: string) => (
+        <button key={t} type="button" onClick={() => toggleWork(t)}
+            className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${lines.includes(t) ? 'border-basil bg-basil text-white' : 'border-line text-muted'}`}>{label}</button>
+    )
     const found = useMemo(() => {
         const s = q.trim().toLowerCase()
         if (!s) return []
@@ -91,8 +104,8 @@ export function ApptForm({ cars, initial }: { cars: CarLite[]; initial: Initial 
 
             {/* когда */}
             <div className="grid grid-cols-2 gap-3">
-                <div><label className="label" htmlFor="day">День</label><input id="day" type="date" value={day} onChange={(e) => setDay(e.target.value)} className="input" required /></div>
-                <div><label className="label" htmlFor="time">Время</label><input id="time" type="time" step={900} value={time} onChange={(e) => setTime(e.target.value)} className="input" required /></div>
+                <div className="min-w-0"><label className="label" htmlFor="day">День</label><input id="day" type="date" value={day} onChange={(e) => setDay(e.target.value)} className="input" required /></div>
+                <div className="min-w-0"><label className="label" htmlFor="time">Время</label><input id="time" type="time" step={900} value={time} onChange={(e) => setTime(e.target.value)} className="input" required /></div>
             </div>
             <div className="-mt-1 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
                 {TIMES.map((t) => (
@@ -113,13 +126,20 @@ export function ApptForm({ cars, initial }: { cars: CarLite[]; initial: Initial 
             {/* что */}
             <div>
                 <label className="label" htmlFor="work">Что делать</label>
-                <div className="mb-2 flex flex-wrap gap-1.5">
-                    {WORKS.map((w) => (
-                        <button key={w} type="button" onClick={() => setWork((s) => (s.includes(w) ? s : s ? `${s}, ${w.toLowerCase()}` : w))}
-                            className="rounded-full border border-line px-3 py-1.5 text-sm font-semibold text-muted active:border-gold">{w}</button>
-                    ))}
+                {!car && (
+                    <div className="mb-2 flex gap-1.5">
+                        {(['ice', 'hybrid', 'ev'] as const).map((p) => (
+                            <button key={p} type="button" onClick={() => setPtNew(p)}
+                                className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${ptNew === p ? 'border-gold bg-gold/15 text-gold' : 'border-line text-muted'}`}>{POWERTRAIN_LABEL[p]}</button>
+                        ))}
+                    </div>
+                )}
+                <div className="mb-1.5 flex flex-wrap gap-1.5">
+                    {chip('Плановое ТО', 'ТО')}
+                    {presets.own.map((p) => chip(p.text, p.label))}
                 </div>
-                <textarea id="work" value={work} onChange={(e) => setWork(e.target.value)} rows={2} className="input" placeholder="Например: ТО, стучит спереди справа" />
+                <div className="mb-2 flex flex-wrap gap-1.5">{presets.common.map((p) => chip(p.text, p.label))}</div>
+                <textarea id="work" value={work} onChange={(e) => setWork(e.target.value)} rows={3} className="input" placeholder="Своими словами: стучит спереди справа…" />
             </div>
 
             {clash && (
