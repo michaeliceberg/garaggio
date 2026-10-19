@@ -7,9 +7,9 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
     return (
         <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
             <div className="text-center">
-                <div className="text-6xl">🔧</div>
-                <h1 className="mt-2 text-4xl font-black tracking-wide">Garaggio</h1>
-                <p className="mt-1 text-gold">Бонджорно, маэстро!</p>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.webp" alt="Garaggio" className="mx-auto w-full max-w-xs rounded-3xl" />
+                <p className="mt-3 text-gold">Бонджорно, маэстро!</p>
             </div>
             <LoginForm error={!!searchParams.error} />
         </main>

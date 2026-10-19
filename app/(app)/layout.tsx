@@ -9,9 +9,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="mx-auto min-h-screen max-w-2xl pb-28">
             <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-bg/95 px-4 py-3 backdrop-blur">
-                <Link href="/" className="flex items-center gap-2 text-xl font-black tracking-wide">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-tomato text-lg">🔧</span>
-                    Garaggio
+                <Link href="/" className="flex items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/logo-small.webp" alt="Garaggio" className="h-12 w-auto rounded-lg" />
                 </Link>
                 <form action={logout}>
                     <button className="flex items-center gap-1 text-sm text-muted" aria-label="Выйти"><LogOut size={18} /></button>
