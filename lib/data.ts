@@ -107,3 +107,9 @@ export async function getDue(withinDays = 14) {
         .filter((r) => (r.days_left != null && r.days_left <= withinDays) || (r.km_left != null && r.km_left <= 700))
         .sort((a, b) => (a.days_left ?? 9999) - (b.days_left ?? 9999))
 }
+
+// Марки и модели, которые уже есть в гараже — первыми в подсказках поля «Модель»
+export async function getKnownModels() {
+    return sql<{ brand: string; model: string }[]>`
+        SELECT brand, model FROM cars WHERE brand <> '' AND model <> '' GROUP BY brand, model ORDER BY count(*) DESC, model LIMIT 300`
+}

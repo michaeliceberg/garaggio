@@ -24,9 +24,9 @@ export function CarPhotoScan() {
                 if (!el || v == null || v === '' || el.value.trim()) return
                 el.value = String(v); filled.push(label)
             }
-            set('plate', car.plate, 'номер'); set('model', car.model, 'модель'); set('year', car.year, 'год')
-            // марка и цвет — управляемые поля, им шлём событие
-            for (const [field, label] of [['brand', 'марка'], ['color', 'цвет']] as const) {
+            set('plate', car.plate, 'номер'); set('year', car.year, 'год')
+            // марка, модель и цвет — управляемые поля, им шлём событие
+            for (const [field, label] of [['brand', 'марка'], ['model', 'модель'], ['color', 'цвет']] as const) {
                 const el = document.getElementById(field) as HTMLInputElement | null
                 if (car[field] && el && !el.value.trim()) { window.dispatchEvent(new CustomEvent('garaggio:fill', { detail: { field, value: car[field] } })); filled.push(label) }
             }

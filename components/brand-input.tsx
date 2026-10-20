@@ -5,10 +5,12 @@ import { suggestBrands } from '@/lib/car-dicts'
 
 // Марка: с первой буквы подсказываем марки кнопками (B → BMW, Bentley…), понимает и «мерс», «тойота».
 export function BrandInput({ defaultValue }: { defaultValue?: string }) {
-    const [v, setV] = useState(defaultValue ?? '')
+    const [v, setVRaw] = useState(defaultValue ?? '')
+    // марку сообщаем полю «Модель» — оно подсказывает модели этой марки
+    const setV = (s: string) => { setVRaw(s); window.dispatchEvent(new CustomEvent('garaggio:brand', { detail: s })) }
     const [open, setOpen] = useState(false)
     useEffect(() => {
-        const on = (e: Event) => { const d = (e as CustomEvent).detail; if (d?.field === 'brand') setV(String(d.value)) }
+        const on = (e: Event) => { const d = (e as CustomEvent).detail; if (d?.field === 'brand') setVRaw(String(d.value)) }
         window.addEventListener('garaggio:fill', on)
         return () => window.removeEventListener('garaggio:fill', on)
     }, [])
