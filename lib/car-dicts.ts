@@ -36,7 +36,7 @@ export function suggestBrands(q: string, limit = 6) {
 
 export const COLORS: { name: string; hex: string }[] = [
     { name: 'белый', hex: '#F4F4F2' }, { name: 'чёрный', hex: '#151515' }, { name: 'серебристый', hex: '#C3C8CD' },
-    { name: 'серый', hex: '#7D848B' }, { name: 'синий', hex: '#2D58C8' }, { name: 'голубой', hex: '#6EC1F0' },
+    { name: 'серый', hex: '#7D848B' }, { name: 'графитовый', hex: '#3E444B' }, { name: 'синий', hex: '#2D58C8' }, { name: 'голубой', hex: '#6EC1F0' },
     { name: 'красный', hex: '#D33A2F' }, { name: 'бордовый', hex: '#7A1E2A' }, { name: 'зелёный', hex: '#2E8B57' },
     { name: 'жёлтый', hex: '#F2C94C' }, { name: 'оранжевый', hex: '#EE8A2A' }, { name: 'коричневый', hex: '#74492B' },
     { name: 'бежевый', hex: '#D8C29E' }, { name: 'золотистый', hex: '#C8A24C' }, { name: 'фиолетовый', hex: '#7B4FC9' },

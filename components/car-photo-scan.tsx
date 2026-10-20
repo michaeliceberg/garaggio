@@ -44,7 +44,7 @@ export function CarPhotoScan() {
         <div className="flex flex-col gap-2">
             <button type="button" onClick={() => ref.current?.click()} disabled={state === 'busy'}
                 className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gold/50 bg-gold/[0.07] p-3 font-bold text-gold disabled:opacity-60">
-                {state === 'busy' ? <><Loader2 size={20} className="animate-spin" />Читаю фото…</> : <><Camera size={20} />Сфоткай номер или СТС — заполню сам</>}
+                {state === 'busy' ? <><Loader2 size={20} className="animate-spin" />Читаю фото…</> : <><Camera size={24} className="shrink-0" /><span className="flex flex-col text-left leading-tight"><span>Сфоткай номер или СТС</span><span className="text-sm font-semibold text-gold/75">заполню сам</span></span></>}
             </button>
             <input ref={ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
             {msg && <p className={`text-center text-sm ${state === 'err' ? 'text-tomato' : 'text-muted'}`}>{msg}</p>}
