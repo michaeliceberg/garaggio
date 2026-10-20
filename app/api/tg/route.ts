@@ -46,7 +46,15 @@ async function handle(m: TgMessage) {
     if (master === chatId) {
         const replyTo = m.reply_to_message?.message_id
         const [orig] = replyTo ? await sql<{ chat_id: string }[]>`SELECT chat_id::text FROM tg_messages WHERE master_msg_id = ${replyTo} LIMIT 1` : []
-        if (!orig) { await tgSend(chatId, 'Чтобы ответить клиенту, нажмите «Ответить» (Reply) на его сообщение.'); return }
+        if (!orig) {
+            // команды работают и у мастера; остальное — подсказка, как тут всё устроено
+            if (text === '/zapis' || text === '/start zapis' || /^(записаться|запись)$/i.test(text)) {
+                await tgSend(chatId, `Ссылка для самозаписи клиентов — её можно пересылать: ${BOOKING_URL}\nЗаявки придут сюда, подтвердить — в календаре приложения.`, { reply_markup: bookingButton })
+                return
+            }
+            await tgSend(chatId, `Вы подключены как мастер 🤌 Сюда приходят сообщения клиентов и заявки на запись.\n\n• Ответить клиенту — нажмите «Ответить» (Reply) на его сообщение\n• /zapis — ссылка для самозаписи клиентов\n• Всё остальное — в приложении: https://garaggio.ru`)
+            return
+        }
         if (!text) { await tgSend(chatId, 'Пока пересылаю клиентам только текст.'); return }
         try {
             await sendToClient(orig.chat_id, text)
