@@ -25,7 +25,7 @@ export function ModelInput({ defaultValue, defaultBrand, known }: { defaultValue
     return (
         <div className="relative">
             <label className="label" htmlFor="model">Модель</label>
-            <input id="model" name="model" value={v} autoComplete="off" autoCorrect="off" placeholder={brand ? 'Начните вводить' : 'ML500'} className="input"
+            <input id="model" name="model" value={v} lang="en" autoCapitalize="words" autoComplete="off" autoCorrect="off" placeholder={brand ? 'Начните вводить' : 'ML500'} className="input"
                 onChange={(e) => { setV(e.target.value); setOpen(true) }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)} />
             {list.length > 0 && (
                 <div className="absolute inset-x-0 top-full z-10 mt-1 flex flex-col overflow-hidden rounded-xl border border-line bg-card shadow-xl">

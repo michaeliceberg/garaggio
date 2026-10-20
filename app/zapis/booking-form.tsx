@@ -116,7 +116,7 @@ export function BookingForm({ days, works }: { days: string[]; works: { id: stri
                     : slots.length === 0 ? (
                         <div className="flex flex-col gap-2 rounded-xl border border-tomato/40 bg-tomato/10 p-3 text-sm">
                             {day === days[0]
-                                ? <span>{mood === 'night' ? '🌙 Сегодня Garaggio уже спит' : '🍕 На сегодня Маэстро закончил'} — выберите другой день, мы вас ждём!</span>
+                                ? <span>{mood === 'night' ? '🌙 Маэстро уже спит, Garaggio закрыт до 8:00' : '🍕 Маэстро на сегодня закончил, Garaggio закрывается'} — выберите другой день, мы вас ждём!</span>
                                 : <span>🤌 Этот день расписан — Маэстро нарасхват! Выберите другой.</span>}
                             {(() => { const next = days.find((d) => d > day && avail?.[d]); return next && (
                                 <button type="button" onClick={() => setDay(next)} className="btn-primary min-h-[44px] text-sm">
@@ -137,7 +137,7 @@ export function BookingForm({ days, works }: { days: string[]; works: { id: stri
 
             <Section icon={<User size={18} />} title="Кто приедет" color="#F2C35B">
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="min-w-0"><label className="label" htmlFor="bname">Имя</label><input id="bname" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} className="input" placeholder="Андрей" autoComplete="given-name" /></div>
+                    <div className="min-w-0"><label className="label" htmlFor="bname">Имя</label><input id="bname" lang="ru" autoCapitalize="words" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} className="input" placeholder="Андрей" autoComplete="given-name" /></div>
                     <PhoneInput />
                 </div>
                 {/* марка и модель — те же подсказки, что в карточке машины («то» → Toyota, потом Camry, RAV4…) */}
