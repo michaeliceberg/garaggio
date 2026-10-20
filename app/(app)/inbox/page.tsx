@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import QRCode from 'qrcode'
 import { Bot, Printer } from 'lucide-react'
-import { botLink, getMasterChat, getThreads, masterLink, tgEnabled } from '@/lib/tg'
+import { botLink, getMasters, getThreads, masterLink, tgEnabled } from '@/lib/tg'
+import { tgRemoveMaster } from '@/app/actions'
+import { ConfirmButton } from '@/components/confirm-button'
 import { dateRu } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
@@ -9,20 +11,27 @@ export const dynamic = 'force-dynamic'
 // «Ящик»: переписка с клиентами в Telegram-боте, подключение мастера и общий QR-код для гаража.
 export default async function InboxPage() {
     if (!tgEnabled()) return <p className="card p-6 text-center text-muted">Telegram-бот ещё не настроен на сервере.</p>
-    const [threads, master] = await Promise.all([getThreads(), getMasterChat()])
+    const [threads, masters] = await Promise.all([getThreads(), getMasters()])
     const qr = await QRCode.toString(botLink() + '?start=hi', { type: 'svg', margin: 1, color: { dark: '#14181C', light: '#FFFFFF' } })
     return (
         <>
             <h1 className="text-2xl font-black">Ящик</h1>
-            {!master && (
-                <a href={masterLink()} target="_blank" rel="noreferrer" className="card flex items-center gap-3 border-[#2AABEE]/50 p-4">
-                    <Bot size={28} className="shrink-0 text-[#2AABEE]" />
-                    <div>
-                        <div className="font-bold">Подключить свой Telegram</div>
-                        <div className="text-sm text-muted">Сообщения клиентов будут приходить вам в Telegram, а отвечать можно прямо там.</div>
+            <section className="card flex flex-col gap-2 p-4">
+                <div className="flex items-center gap-2 font-black text-[#2AABEE]"><Bot size={20} />Мастера в Telegram</div>
+                <p className="text-sm text-muted">Им приходят сообщения клиентов и заявки на запись. Ответить клиенту может любой — остальные увидят ответ.</p>
+                {masters.map((m) => (
+                    <div key={m.chat_id} className="flex items-center justify-between gap-2 rounded-xl bg-bg px-3 py-2">
+                        <span className="font-semibold">{m.name || 'Мастер'}</span>
+                        <form action={tgRemoveMaster.bind(null, m.chat_id)}>
+                            <ConfirmButton message={`Отключить ${m.name || 'этого мастера'} от бота? Сообщения клиентов ему больше не будут приходить.`} className="text-sm text-muted">Отключить</ConfirmButton>
+                        </form>
                     </div>
+                ))}
+                <a href={masterLink()} target="_blank" rel="noreferrer" className="btn-ghost min-h-[44px] text-sm">
+                    <Bot size={18} className="text-[#2AABEE]" />{masters.length ? 'Подключить ещё один Telegram' : 'Подключить свой Telegram'}
                 </a>
-            )}
+                <p className="text-xs text-muted">Откройте эту кнопку на телефоне того, кого подключаете (например, Ильдара), и нажмите «Старт» в боте.</p>
+            </section>
             {threads.length === 0 && <p className="card p-6 text-center text-muted">Пока никто не подписался. Покажите клиенту QR-код в карточке машины или общий ниже.</p>}
             <ul className="flex flex-col gap-2">
                 {threads.map((t) => (
@@ -48,7 +57,6 @@ export default async function InboxPage() {
                 <p className="text-sm text-muted">Распечатайте и повесьте на видном месте: клиент сканирует, делится номером телефона — бот сам находит его машины.</p>
                 <div className="mx-auto mt-3 w-56 overflow-hidden rounded-xl bg-white p-2" dangerouslySetInnerHTML={{ __html: qr }} />
                 <p className="mt-2 text-center text-sm text-muted">{botLink().replace('https://', '')}</p>
-                {master && <p className="mt-3 text-sm text-muted">Ваш Telegram подключён. <a href={masterLink()} target="_blank" rel="noreferrer" className="text-gold">Переподключить</a></p>}
                 </div>
             </details>
         </>

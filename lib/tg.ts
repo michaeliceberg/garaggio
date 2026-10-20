@@ -37,12 +37,26 @@ export function carFromPayload(p: string) {
     return m && m[2] === sign('car' + m[1]) ? Number(m[1]) : null
 }
 
-export async function getMasterChat() {
-    const [r] = await sql<{ value: string }[]>`SELECT value FROM settings WHERE key = 'tg_master_chat'`
-    return r?.value || null
+// Мастера в Telegram (может быть несколько): всем приходят сообщения клиентов и заявки, ответить может любой.
+export type TgMaster = { chat_id: string; name: string }
+export async function getMasters() {
+    return sql<TgMaster[]>`SELECT chat_id::text, name FROM tg_masters ORDER BY created_at`
 }
-export async function setMasterChat(chatId: string) {
-    await sql`INSERT INTO settings (key, value) VALUES ('tg_master_chat', ${chatId}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`
+export async function addMaster(chatId: string, name: string) {
+    await sql`INSERT INTO tg_masters (chat_id, name) VALUES (${chatId}, ${name}) ON CONFLICT (chat_id) DO UPDATE SET name = EXCLUDED.name`
+}
+export async function removeMaster(chatId: string) {
+    await sql`DELETE FROM tg_masters WHERE chat_id = ${chatId}`
+}
+// Разослать всем мастерам (кроме except). clientChat — это копия сообщения клиента: запоминаем, чтобы Reply ушёл ему.
+export async function notifyMasters(text: string, opts: { except?: string; clientChat?: string } = {}) {
+    for (const m of await getMasters()) {
+        if (m.chat_id === opts.except) continue
+        try {
+            const sent = await tgSend(m.chat_id, text)
+            if (opts.clientChat) await sql`INSERT INTO tg_relay (master_chat, master_msg_id, client_chat) VALUES (${m.chat_id}, ${sent.message_id}, ${opts.clientChat}) ON CONFLICT DO NOTHING`
+        } catch (e) { console.error('tg master', m.chat_id, e) }
+    }
 }
 
 // Машины клиента по номеру телефона (сравниваем только цифры, 8… = 7…)

@@ -3,7 +3,7 @@ import { sql } from '@/lib/db'
 import { formatPhone } from '@/lib/format'
 import { BOOKING_URL } from '@/lib/messages'
 import {
-    carFromPayload, carsByPhone, contactKeyboard, getMasterChat, masterPayload, noKeyboard, sendToClient, setMasterChat, tgSend,
+    addMaster, carFromPayload, carsByPhone, contactKeyboard, getMasters, masterPayload, noKeyboard, notifyMasters, sendToClient, tgSend,
 } from '@/lib/tg'
 
 // Обновления Telegram: их сюда отдаёт опросчик scripts/tg-poller.mjs (с секретом в заголовке).
@@ -32,20 +32,27 @@ export async function POST(req: Request) {
 
 async function handle(m: TgMessage) {
     const chatId = String(m.chat.id)
-    const master = await getMasterChat()
+    const masters = await getMasters()
+    const isMaster = masters.some((x) => x.chat_id === chatId)
     const text = (m.text ?? m.caption ?? '').trim()
 
     // Подключение мастера: /start m_<подпись> со страницы «Ящик»
     if (text === `/start ${masterPayload()}`) {
-        await setMasterChat(chatId)
-        await tgSend(chatId, 'Бонджорно, маэстро! 🤌 Сюда будут приходить сообщения клиентов. Чтобы ответить — просто ответьте (Reply) на сообщение клиента.')
+        const who = [m.from?.first_name, m.from?.last_name].filter(Boolean).join(' ')
+        await addMaster(chatId, who)
+        await tgSend(chatId, 'Бонджорно, маэстро! 🤌 Сюда будут приходить сообщения клиентов и заявки на запись. Чтобы ответить — просто ответьте (Reply) на сообщение клиента.')
+        await notifyMasters(`👋 ${who || 'Ещё один мастер'} подключился к боту — теперь сообщения клиентов приходят и ему.`, { except: chatId })
         return
     }
 
     // Мастер в своём чате: ответ на пересланное сообщение уходит клиенту
-    if (master === chatId) {
+    if (isMaster) {
+        // имя мастера (у перенесённого со старой версии его не было) — берём из Telegram
+        if (!masters.find((x) => x.chat_id === chatId)?.name && m.from?.first_name) await addMaster(chatId, [m.from.first_name, m.from.last_name].filter(Boolean).join(' '))
         const replyTo = m.reply_to_message?.message_id
-        const [orig] = replyTo ? await sql<{ chat_id: string }[]>`SELECT chat_id::text FROM tg_messages WHERE master_msg_id = ${replyTo} LIMIT 1` : []
+        const [orig] = replyTo ? await sql<{ chat_id: string }[]>`
+            SELECT client_chat::text AS chat_id FROM tg_relay WHERE master_chat = ${chatId} AND master_msg_id = ${replyTo}
+            UNION ALL SELECT chat_id::text FROM tg_messages WHERE master_msg_id = ${replyTo} LIMIT 1` : []
         if (!orig) {
             // команды работают и у мастера; остальное — подсказка, как тут всё устроено
             if (text === '/zapis' || text === '/start zapis' || /^(записаться|запись)$/i.test(text)) {
@@ -59,6 +66,10 @@ async function handle(m: TgMessage) {
         try {
             await sendToClient(orig.chat_id, text)
             revalidatePath('/inbox')
+            // остальные мастера видят, что клиенту уже ответили
+            const [c] = await sql<{ name: string }[]>`SELECT name FROM tg_chats WHERE chat_id = ${orig.chat_id}`
+            const me = masters.find((x) => x.chat_id === chatId)?.name || 'Мастер'
+            await notifyMasters(`↪️ ${me} ответил${c?.name ? ` (${c.name})` : ''}:\n${text}`, { except: chatId })
         } catch (e) { await tgSend(chatId, `Не отправилось: ${(e as Error).message}`) }
         return
     }
@@ -82,7 +93,7 @@ async function handle(m: TgMessage) {
             if (car) {
                 const hi = car.owner_name ? `Чао, ${car.owner_name.split(' ')[0]}!` : 'Чао!'
                 await tgSend(chatId, `${hi} Это Garaggio 🤌 Вы подписаны: ${carTitle(car)}.\n\nСюда придут напоминания о ТО и отчёты после визитов. А ещё можно написать мастеру прямо здесь, а записаться — кнопкой ниже или командой /zapis.`, { reply_markup: bookingButton })
-                await notifyMaster(master, `✅ Клиент подписался на бота: ${carTitle(car)}${name ? ` (${name})` : ''}`)
+                await notifyMasters(`✅ Клиент подписался на бота: ${carTitle(car)}${name ? ` (${name})` : ''}`)
                 revalidatePath(`/cars/${carId}`); revalidatePath('/inbox')
                 return
             }
@@ -108,11 +119,11 @@ async function handle(m: TgMessage) {
                 UPDATE cars SET tg_chat_id = ${chatId} WHERE id IN ${sql(cars.map((c) => c.id))} RETURNING plate, brand, model`
             await tgSend(chatId, `Грацие! Нашли: ${linked.map(carTitle).join(', ')} 🚗\n\nСюда придут напоминания о ТО и отчёты. Можно написать мастеру прямо здесь.`, { reply_markup: noKeyboard })
             await sendBooking(chatId)
-            await notifyMaster(master, `✅ Клиент подписался по номеру ${phone}: ${linked.map(carTitle).join(', ')}`)
+            await notifyMasters(`✅ Клиент подписался по номеру ${phone}: ${linked.map(carTitle).join(', ')}`)
         } else {
             await tgSend(chatId, 'Грацие! Пока не нашли машину с этим номером — мастер добавит её, и всё заработает. Можете написать сюда, что за машина.', { reply_markup: noKeyboard })
             await sendBooking(chatId)
-            await notifyMaster(master, `❓ Новый клиент в боте, машина не найдена: ${phone}${name ? ` (${name})` : ''}`)
+            await notifyMasters(`❓ Новый клиент в боте, машина не найдена: ${phone}${name ? ` (${name})` : ''}`)
         }
         revalidatePath('/inbox')
         return
@@ -123,14 +134,7 @@ async function handle(m: TgMessage) {
     const [cars] = await sql<{ list: string }[]>`
         SELECT coalesce(string_agg(trim(brand || ' ' || model || ' ' || plate), ', '), '') AS list FROM cars WHERE tg_chat_id = ${chatId}`
     const who = [name, cars.list].filter(Boolean).join(' · ') || 'Клиент'
-    let masterMsgId: number | null = null
-    if (master) {
-        try { masterMsgId = (await tgSend(master, `💬 ${who}:\n${body}`)).message_id } catch (e) { console.error('tg master', e) }
-    }
-    await sql`INSERT INTO tg_messages (chat_id, out, text, master_msg_id) VALUES (${chatId}, false, ${body}, ${masterMsgId})`
+    await sql`INSERT INTO tg_messages (chat_id, out, text) VALUES (${chatId}, false, ${body})`
+    await notifyMasters(`💬 ${who}:\n${body}`, { clientChat: chatId })
     revalidatePath('/inbox')
-}
-
-async function notifyMaster(master: string | null, text: string) {
-    if (master) await tgSend(master, text).catch((e) => console.error('tg master', e))
 }

@@ -94,3 +94,19 @@ CREATE INDEX IF NOT EXISTS appointments_car_idx ON appointments (car_id);
 -- client_car — машина словами («Zeekr 001»), если клиента ещё нет в базе
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'master';
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS client_car text NOT NULL DEFAULT '';
+
+-- Несколько мастеров в Telegram: всем приходят сообщения клиентов и заявки, ответить может любой.
+CREATE TABLE IF NOT EXISTS tg_masters (
+    chat_id    bigint PRIMARY KEY,
+    name       text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+-- старый единственный мастер (settings.tg_master_chat) переезжает в список
+INSERT INTO tg_masters (chat_id) SELECT value::bigint FROM settings WHERE key = 'tg_master_chat' AND value ~ '^-?[0-9]+$' ON CONFLICT DO NOTHING;
+-- какая копия у какого мастера соответствует какому клиенту (ответ Reply на копию уходит клиенту)
+CREATE TABLE IF NOT EXISTS tg_relay (
+    master_chat   bigint NOT NULL,
+    master_msg_id bigint NOT NULL,
+    client_chat   bigint NOT NULL,
+    PRIMARY KEY (master_chat, master_msg_id)
+);

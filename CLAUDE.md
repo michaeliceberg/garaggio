@@ -36,7 +36,8 @@ cd /var/www/garaggio && git checkout -q package-lock.json; git pull -q origin ma
 ## Внешние сервисы (с сервера в России напрямую недоступны)
 - **Telegram** (@garaggio_app_bot): вебхук до сервера не доходит. Работает опросчик `scripts/tg-poller.mjs`: getUpdates через
   Cloudflare-прокси `TG_API_BASE` → отдаёт обновления в `http://127.0.0.1:3005/api/tg` с заголовком `TG_WEBHOOK_SECRET`.
-  Вебхук не включать. Мастер подключает свой Telegram во вкладке «Ящик» и отвечает клиентам ответом (Reply) на их сообщения.
+  Вебхук не включать. Мастеров может быть несколько (таблица `tg_masters`): подключаются кнопкой в «Ящике», всем приходят
+  сообщения клиентов и заявки; ответ Reply на копию (`tg_relay`) уходит клиенту, остальные мастера видят копию ответа.
 - **ElevenLabs**: только через прокси `ELEVENLABS_API_BASE` (Cloudflare-воркер `elevenlabs-proxy`, пропускает `/v1/*` с ключом).
   Голос Chuck Miller (`HIGUfNOdjuWQwwapnTRW`), модель `eleven_v4`, stability 0, пометки `[cheerful]`, `[laughs]`, `[warmly]`
   расставляет `voiceText()`. Оплата Pay as you go — озвучка один раз на текст, дальше из кеша `UPLOAD_DIR/tts/`.

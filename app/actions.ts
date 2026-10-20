@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
 import { endSession, requireAuth } from '@/lib/auth'
 import { parseVoiceText, type VoiceParsed } from '@/lib/ai'
-import { sendToClient, sendVoiceToClient } from '@/lib/tg'
+import { notifyMasters, removeMaster, sendToClient, sendVoiceToClient } from '@/lib/tg'
 import { synthesize } from '@/lib/tts'
 import { apptCar, apptWho, conflicts, endTime } from '@/lib/appts'
 import { apptText } from '@/lib/messages'
@@ -129,6 +129,8 @@ export async function tgToChat(chatId: string, text: string) {
     const t = text.trim()
     if (!t || !/^-?\d+$/.test(chatId)) return { error: 'Пустое сообщение' }
     try { await sendToClient(chatId, t) } catch (e) { return { error: (e as Error).message } }
+    const [c] = await sql<{ name: string }[]>`SELECT name FROM tg_chats WHERE chat_id = ${chatId}`
+    await notifyMasters(`↪️ Ответ из приложения${c?.name ? ` (${c.name})` : ''}:\n${t}`) // мастера в Telegram видят, что клиенту ответили
     revalidatePath('/inbox'); revalidatePath(`/inbox/${chatId}`)
     return { ok: true }
 }
@@ -198,4 +200,10 @@ export async function confirmAppt(id: number) {
         FROM appointments a LEFT JOIN cars c ON c.id = a.car_id WHERE a.id = ${id}`
     if (a?.tg) await sendToClient(a.tg, apptText({ brand: a.brand, model: a.model, owner_name: a.owner_name || a.client_name }, a.day, a.t, a.work)).catch(() => {})
     revalidatePath('/calendar'); revalidatePath('/')
+}
+// Отключить мастера от бота (во вкладке «Ящик»)
+export async function tgRemoveMaster(chatId: string) {
+    requireAuth()
+    if (/^-?\d+$/.test(chatId)) await removeMaster(chatId)
+    revalidatePath('/inbox')
 }

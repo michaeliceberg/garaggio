@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
 import { formatPhone } from '@/lib/format'
 import { freeSlots, todayMsk, SELF_WORKS, SELF_DAYS_AHEAD } from '@/lib/appts'
-import { carsByPhone, getMasterChat, tgEnabled, tgSend } from '@/lib/tg'
+import { carsByPhone, notifyMasters, tgEnabled } from '@/lib/tg'
 import { phoneDigits } from '@/lib/messages'
 
 // Самозапись клиентов — открыто без входа. Клиент видит только свободное время, чужих записей не видит.
@@ -47,10 +47,8 @@ export async function book(input: { day: string; time: string; workId: string; c
     revalidatePath('/calendar'); revalidatePath('/')
 
     if (tgEnabled()) {
-        const master = await getMasterChat()
         const d = new Date(input.day + 'T12:00:00Z').toLocaleDateString('ru-RU', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'long' })
-        if (master) await tgSend(master, `📅 Новая заявка на запись\n${name}, ${phone}${car ? `\n🚗 ${car}` : ''}\n🕐 ${d}, ${input.time}\n🔧 ${workText.replace(/\n/g, ' · ') || 'не указано'}\n\nПодтвердить: https://garaggio.ru/calendar?d=${input.day}`)
-            .catch((e) => console.error('tg master', e))
+        await notifyMasters(`📅 Новая заявка на запись\n${name}, ${phone}${car ? `\n🚗 ${car}` : ''}\n🕐 ${d}, ${input.time}\n🔧 ${workText.replace(/\n/g, ' · ') || 'не указано'}\n\nПодтвердить: https://garaggio.ru/calendar?d=${input.day}`)
     }
     return { ok: true, id: a.id }
 }
