@@ -24,9 +24,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 // Один раз при старте: убрать вебхук (иначе getUpdates не работает), команды и описание бота.
 await api('deleteWebhook', {}).catch((e) => console.error(e.message))
-await api('setMyCommands', { commands: [{ command: 'start', description: 'Подписаться на напоминания' }, { command: 'stop', description: 'Отписаться' }] }).catch((e) => console.error(e.message))
-await api('setMyDescription', { description: 'Garaggio 🤌 — напоминания о ТО, отчёты после визита и связь с мастером.' }).catch((e) => console.error(e.message))
-await api('setMyShortDescription', { short_description: 'Garaggio: напоминания о ТО и связь с мастером' }).catch((e) => console.error(e.message))
+await api('setMyCommands', { commands: [{ command: 'zapis', description: 'Записаться на удобное время' }, { command: 'start', description: 'Подписаться на напоминания' }, { command: 'stop', description: 'Отписаться' }] }).catch((e) => console.error(e.message))
+await api('setMyDescription', { description: 'Чао! Это Garaggio 🤌 — гараж, где о вашей машине помнят всё.\n\n📅 Записаться на удобное время: garaggio.ru/zapis\n🔧 Напомним, когда пора на ТО\n📋 Пришлём отчёт после визита с фото\n💬 Можно написать мастеру прямо сюда\n\nНажмите «Старт» и поделитесь номером — мы найдём вашу машину. Грацие!' }).catch((e) => console.error(e.message))
+await api('setMyShortDescription', { short_description: 'Garaggio 🤌 Запись онлайн: garaggio.ru/zapis · напоминания о ТО · связь с мастером' }).catch((e) => console.error(e.message))
 console.log('garaggio tg poller started')
 
 let offset = readOffset()

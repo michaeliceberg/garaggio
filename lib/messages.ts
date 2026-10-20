@@ -1,4 +1,5 @@
 // Готовые тексты для клиентов (в духе Garaggio — дружелюбно, с итальянской ноткой).
+export const BOOKING_URL = 'https://garaggio.ru/zapis' // самозапись клиентов
 import { dateRu } from './format'
 
 export type MsgCar = { brand: string; model: string; owner_name: string }
@@ -9,7 +10,7 @@ export type MsgTemplate = { id: string; label: string; text: string }
 
 export function dueText(c: MsgCar, nextDate?: string | null) {
     const when = nextDate && new Date(nextDate) > new Date() ? ` (${dateRu(nextDate)})` : ''
-    return `${hello(c)} Это Garaggio 🤌 Вашему ${carName(c)} пора на техобслуживание${when}. Когда вам удобно заехать?`
+    return `${hello(c)} Это Garaggio 🤌 Вашему ${carName(c)} пора на техобслуживание${when}. Когда вам удобно заехать? Выбрать время можно здесь: ${BOOKING_URL}`
 }
 export function templatesFor(c: MsgCar, nextDate?: string | null): MsgTemplate[] {
     return [

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Phone, Plus, Wrench, Pencil, Car as CarIcon } from 'lucide-react'
 import { countByDay, endTime, getDay, nowMskTime, todayMsk, WORK_DAY, apptWho, apptCar, apptPhone, type Appt } from '@/lib/appts'
 import { telHref } from '@/lib/format'
-import { apptText } from '@/lib/messages'
+import { apptText, BOOKING_URL } from '@/lib/messages'
 import { ttsEnabled } from '@/lib/tts'
 import { confirmAppt, setApptStatus } from '@/app/actions'
 import QRCode from 'qrcode'
@@ -89,7 +89,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: { d
 
 // Ссылка для самозаписи клиентов: QR (распечатать в гараже) и готовое сообщение со ссылкой
 async function SelfBookingLink() {
-    const url = 'https://garaggio.ru/zapis'
+    const url = BOOKING_URL
     const svg = await QRCode.toString(url, { type: 'svg', margin: 1, color: { dark: '#14181C', light: '#FFFFFF' } })
     return (
         <details className="fold bg-card">

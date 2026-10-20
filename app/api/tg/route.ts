@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
 import { formatPhone } from '@/lib/format'
+import { BOOKING_URL } from '@/lib/messages'
 import {
     carFromPayload, carsByPhone, contactKeyboard, getMasterChat, masterPayload, noKeyboard, sendToClient, setMasterChat, tgSend,
 } from '@/lib/tg'
@@ -11,6 +12,10 @@ type TgMessage = {
     message_id: number; from?: TgUser; chat: { id: number; type: string }; text?: string; caption?: string
     contact?: { phone_number: string; user_id?: number }; reply_to_message?: { message_id: number }
 }
+
+// кнопка «Записаться онлайн» под сообщением — открывает страницу самозаписи
+const bookingButton = { inline_keyboard: [[{ text: '📅 Записаться онлайн', url: BOOKING_URL }]] }
+const sendBooking = (chatId: string) => tgSend(chatId, 'Выберите удобный день и время — мастер подтвердит запись 🤌', { reply_markup: bookingButton })
 
 const carTitle = (c: { plate: string; brand: string; model: string }) => [[c.brand, c.model].filter(Boolean).join(' '), c.plate].filter(Boolean).join(' · ')
 
@@ -56,6 +61,11 @@ async function handle(m: TgMessage) {
     await sql`INSERT INTO tg_chats (chat_id, name, username) VALUES (${chatId}, ${name}, ${u?.username ?? ''})
               ON CONFLICT (chat_id) DO UPDATE SET name = EXCLUDED.name, username = EXCLUDED.username`
 
+    if (text === '/zapis' || text === '/start zapis' || /^(записаться|запись)$/i.test(text)) {
+        await sendBooking(chatId)
+        return
+    }
+
     if (text.startsWith('/start')) {
         const carId = carFromPayload(text.slice(6).trim())
         if (carId) {
@@ -63,7 +73,7 @@ async function handle(m: TgMessage) {
                 UPDATE cars SET tg_chat_id = ${chatId} WHERE id = ${carId} RETURNING plate, brand, model, owner_name`
             if (car) {
                 const hi = car.owner_name ? `Чао, ${car.owner_name.split(' ')[0]}!` : 'Чао!'
-                await tgSend(chatId, `${hi} Это Garaggio 🤌 Вы подписаны: ${carTitle(car)}.\n\nСюда придут напоминания о ТО и отчёты после визитов. А ещё можно написать мастеру прямо здесь.`, { reply_markup: noKeyboard })
+                await tgSend(chatId, `${hi} Это Garaggio 🤌 Вы подписаны: ${carTitle(car)}.\n\nСюда придут напоминания о ТО и отчёты после визитов. А ещё можно написать мастеру прямо здесь, а записаться — кнопкой ниже или командой /zapis.`, { reply_markup: bookingButton })
                 await notifyMaster(master, `✅ Клиент подписался на бота: ${carTitle(car)}${name ? ` (${name})` : ''}`)
                 revalidatePath(`/cars/${carId}`); revalidatePath('/inbox')
                 return
@@ -89,9 +99,11 @@ async function handle(m: TgMessage) {
             const linked = await sql<{ plate: string; brand: string; model: string }[]>`
                 UPDATE cars SET tg_chat_id = ${chatId} WHERE id IN ${sql(cars.map((c) => c.id))} RETURNING plate, brand, model`
             await tgSend(chatId, `Грацие! Нашли: ${linked.map(carTitle).join(', ')} 🚗\n\nСюда придут напоминания о ТО и отчёты. Можно написать мастеру прямо здесь.`, { reply_markup: noKeyboard })
+            await sendBooking(chatId)
             await notifyMaster(master, `✅ Клиент подписался по номеру ${phone}: ${linked.map(carTitle).join(', ')}`)
         } else {
             await tgSend(chatId, 'Грацие! Пока не нашли машину с этим номером — мастер добавит её, и всё заработает. Можете написать сюда, что за машина.', { reply_markup: noKeyboard })
+            await sendBooking(chatId)
             await notifyMaster(master, `❓ Новый клиент в боте, машина не найдена: ${phone}${name ? ` (${name})` : ''}`)
         }
         revalidatePath('/inbox')
