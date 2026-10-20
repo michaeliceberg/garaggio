@@ -1,9 +1,10 @@
 import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
-import { formatPhone } from '@/lib/format'
+import crypto from 'node:crypto'
+import { formatPhone, km } from '@/lib/format'
 import { BOOKING_URL } from '@/lib/messages'
 import {
-    addMaster, carFromPayload, carsByPhone, contactKeyboard, getMasters, masterPayload, noKeyboard, notifyMasters, sendToClient, tgSend,
+    addMaster, carFromPayload, carsByPhone, contactKeyboard, getMasters, masterPayload, notifyMasters, sendToClient, tgSend,
 } from '@/lib/tg'
 
 // Обновления Telegram: их сюда отдаёт опросчик scripts/tg-poller.mjs (с секретом в заголовке).
@@ -16,6 +17,11 @@ type TgMessage = {
 // кнопка «Записаться онлайн» под сообщением — открывает страницу самозаписи
 const bookingButton = { inline_keyboard: [[{ text: '📅 Записаться онлайн', url: BOOKING_URL }]] }
 const sendBooking = (chatId: string) => tgSend(chatId, 'Выберите удобный день и время — мастер подтвердит запись 🤌', { reply_markup: bookingButton })
+
+// Постоянные кнопки клиента внизу чата (вместо клавиатуры)
+const B = { book: '📅 Записаться', due: '🔧 Когда ТО?', last: '📋 Последний визит', write: '💬 Написать мастеру' }
+const menuKeyboard = { keyboard: [[{ text: B.book }, { text: B.due }], [{ text: B.last }, { text: B.write }]], resize_keyboard: true, is_persistent: true }
+const dateRu = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('ru-RU', { timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric' })
 
 const carTitle = (c: { plate: string; brand: string; model: string }) => [[c.brand, c.model].filter(Boolean).join(' '), c.plate].filter(Boolean).join(' · ')
 
@@ -92,13 +98,39 @@ async function handle(m: TgMessage) {
                 UPDATE cars SET tg_chat_id = ${chatId} WHERE id = ${carId} RETURNING plate, brand, model, owner_name`
             if (car) {
                 const hi = car.owner_name ? `Чао, ${car.owner_name.split(' ')[0]}!` : 'Чао!'
-                await tgSend(chatId, `${hi} Это Garaggio 🤌 Вы подписаны: ${carTitle(car)}.\n\nСюда придут напоминания о ТО и отчёты после визитов. А ещё можно написать мастеру прямо здесь, а записаться — кнопкой ниже или командой /zapis.`, { reply_markup: bookingButton })
+                await tgSend(chatId, `${hi} Это Garaggio 🤌 Вы подписаны: ${carTitle(car)}.\n\nСюда придут напоминания о ТО и отчёты после визитов. Кнопки внизу — записаться, узнать про ТО, последний визит или написать мастеру.`, { reply_markup: menuKeyboard })
                 await notifyMasters(`✅ Клиент подписался на бота: ${carTitle(car)}${name ? ` (${name})` : ''}`)
                 revalidatePath(`/cars/${carId}`); revalidatePath('/inbox')
                 return
             }
         }
+        const [linked] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM cars WHERE tg_chat_id = ${chatId}`
+        if (linked.n) { await tgSend(chatId, 'Чао! Это Garaggio 🤌 Кнопки внизу — записаться, узнать про ТО, последний визит или написать мастеру.', { reply_markup: menuKeyboard }); return }
         await tgSend(chatId, 'Чао! Это Garaggio 🤌 Поделитесь номером телефона — найдём вашу машину, и сюда будут приходить напоминания о ТО и отчёты.', { reply_markup: contactKeyboard })
+        return
+    }
+
+    if (text === B.book) { await sendBooking(chatId); return }
+    if (text === B.write) { await tgSend(chatId, 'Напишите сюда, что случилось или что хотите спросить, — мастер ответит в этом чате 🤌', { reply_markup: menuKeyboard }); return }
+    if (text === B.due || text === B.last) {
+        const cars = await sql<{ id: number; plate: string; brand: string; model: string }[]>`SELECT id, plate, brand, model FROM cars WHERE tg_chat_id = ${chatId} ORDER BY id`
+        if (!cars.length) { await tgSend(chatId, 'Пока не нашли вашу машину. Поделитесь номером телефона — и всё заработает.', { reply_markup: contactKeyboard }); return }
+        const parts: string[] = []
+        for (const c of cars) {
+            const [v] = await sql<{ id: number; visit_date: string; mileage: number | null; works: string; next_date: string | null; next_mileage: number | null; share_token: string | null }[]>`
+                SELECT id, visit_date::text, mileage, works, next_date::text, next_mileage, share_token FROM visits WHERE car_id = ${c.id} ORDER BY visit_date DESC, id DESC LIMIT 1`
+            if (!v) { parts.push(`🚗 ${carTitle(c)}: визитов ещё не было`); continue }
+            if (text === B.due) {
+                const when = [v.next_date && dateRu(v.next_date), v.next_mileage && `или на ${km(v.next_mileage)}`].filter(Boolean).join(' ')
+                parts.push(`🚗 ${carTitle(c)}\nСледующее ТО: ${when || 'мастер ещё не назначил'}\nПоследний визит: ${dateRu(v.visit_date)}${v.mileage ? `, ${km(v.mileage)}` : ''}`)
+            } else {
+                let token = v.share_token
+                if (!token) { token = crypto.randomBytes(12).toString('base64url'); await sql`UPDATE visits SET share_token = ${token} WHERE id = ${v.id}` }
+                const works = v.works.split('\n').filter(Boolean).slice(0, 4).map((w) => `• ${w}`).join('\n')
+                parts.push(`🚗 ${carTitle(c)} — ${dateRu(v.visit_date)}${works ? `\n${works}` : ''}\nОтчёт с фото: https://garaggio.ru/r/${token}`)
+            }
+        }
+        await tgSend(chatId, parts.join('\n\n'), { reply_markup: menuKeyboard })
         return
     }
 
@@ -117,12 +149,10 @@ async function handle(m: TgMessage) {
         if (cars.length) {
             const linked = await sql<{ plate: string; brand: string; model: string }[]>`
                 UPDATE cars SET tg_chat_id = ${chatId} WHERE id IN ${sql(cars.map((c) => c.id))} RETURNING plate, brand, model`
-            await tgSend(chatId, `Грацие! Нашли: ${linked.map(carTitle).join(', ')} 🚗\n\nСюда придут напоминания о ТО и отчёты. Можно написать мастеру прямо здесь.`, { reply_markup: noKeyboard })
-            await sendBooking(chatId)
+            await tgSend(chatId, `Грацие! Нашли: ${linked.map(carTitle).join(', ')} 🚗\n\nСюда придут напоминания о ТО и отчёты. Кнопки внизу — записаться, узнать про ТО, последний визит или написать мастеру.`, { reply_markup: menuKeyboard })
             await notifyMasters(`✅ Клиент подписался по номеру ${phone}: ${linked.map(carTitle).join(', ')}`)
         } else {
-            await tgSend(chatId, 'Грацие! Пока не нашли машину с этим номером — мастер добавит её, и всё заработает. Можете написать сюда, что за машина.', { reply_markup: noKeyboard })
-            await sendBooking(chatId)
+            await tgSend(chatId, 'Грацие! Пока не нашли машину с этим номером — мастер добавит её, и всё заработает. Можете написать сюда, что за машина.', { reply_markup: menuKeyboard })
             await notifyMasters(`❓ Новый клиент в боте, машина не найдена: ${phone}${name ? ` (${name})` : ''}`)
         }
         revalidatePath('/inbox')
