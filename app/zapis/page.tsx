@@ -3,7 +3,7 @@ import { SELF_DAYS_AHEAD, SELF_WORKS, todayMsk, WORK_DAY } from '@/lib/appts'
 import { BookingForm } from './booking-form'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = { title: 'Запись в Garaggio', description: 'Выберите удобное время — мастер подтвердит запись.' }
+export const metadata: Metadata = { title: 'Запись в Garaggio', description: 'Выберите удобное время — Маэстро подтвердит запись.' }
 
 // Самозапись: открывается без входа (ссылка/QR от мастера). Только свободное время, чужих записей не видно.
 export default function ZapisPage() {
@@ -15,7 +15,7 @@ export default function ZapisPage() {
             <img src="/logo.webp" alt="Garaggio" className="mx-auto w-40 rounded-2xl" />
             <div className="text-center">
                 <h1 className="text-2xl font-black">Запись в Garaggio 🤌</h1>
-                <p className="text-sm text-muted">Каждый день с {WORK_DAY.from} до {WORK_DAY.to}. Выберите удобное время — мастер подтвердит запись.</p>
+                <p className="text-sm text-muted">Каждый день с {WORK_DAY.from} до {WORK_DAY.to}. Выберите удобное время — Маэстро подтвердит запись.</p>
             </div>
             <BookingForm days={days} works={SELF_WORKS.map((w) => ({ id: w.id, label: w.label, minutes: w.minutes }))} />
         </main>

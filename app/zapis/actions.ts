@@ -36,7 +36,7 @@ export async function book(input: { day: string; time: string; workId: string; c
         SELECT count(*)::int AS n FROM appointments WHERE source = 'client' AND status = 'pending' AND day >= ${todayMsk()}
           AND regexp_replace(client_phone, '[^0-9]', '', 'g') = ${digits}`
     const [{ n: recent }] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM appointments WHERE source = 'client' AND created_at > now() - interval '1 hour'`
-    if (mine >= 3 || recent >= 30) return { error: 'Уже есть заявки с этого номера — мастер скоро свяжется' }
+    if (mine >= 3 || recent >= 30) return { error: 'Уже есть заявки с этого номера — Маэстро скоро свяжется' }
 
     const phone = formatPhone(digits)
     // клиент уже есть в базе — привяжем к его машине: по номеру машины, иначе по телефону

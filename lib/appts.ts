@@ -56,7 +56,7 @@ export function endTime(start: string, duration: number) {
     return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
 }
 export const DURATIONS = [[30, '30 мин'], [60, '1 час'], [90, '1,5 часа'], [120, '2 часа'], [180, '3 часа'], [240, '4 часа'], [480, 'Весь день']] as const
-export const WORK_DAY = { from: '08:00', to: '22:00' } // Ильдар работает 7/7
+export const WORK_DAY = { from: '08:00', to: '22:00' } // Маэстро работает 7/7
 // Все машины коротко — для выбора в форме записи
 export type CarLite = { id: number; plate: string; brand: string; model: string; owner_name: string; owner_phone: string; powertrain: Powertrain }
 export async function carsLite() {

@@ -62,7 +62,7 @@ export default async function Report({ params }: { params: { token: string } }) 
             )}
             {visit.recommendations && (
                 <section className="card border-gold/40 p-4">
-                    <h2 className="mb-1 font-black text-gold">Рекомендации мастера</h2>
+                    <h2 className="mb-1 font-black text-gold">Рекомендации Маэстро</h2>
                     <p className="whitespace-pre-wrap">{visit.recommendations}</p>
                 </section>
             )}

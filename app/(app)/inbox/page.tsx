@@ -17,20 +17,20 @@ export default async function InboxPage() {
         <>
             <h1 className="text-2xl font-black">Ящик</h1>
             <section className="card flex flex-col gap-2 p-4">
-                <div className="flex items-center gap-2 font-black text-[#2AABEE]"><Bot size={20} />Мастера в Telegram</div>
+                <div className="flex items-center gap-2 font-black text-[#2AABEE]"><Bot size={20} />Маэстро в Telegram</div>
                 <p className="text-sm text-muted">Им приходят сообщения клиентов и заявки на запись. Ответить клиенту может любой — остальные увидят ответ.</p>
                 {masters.map((m) => (
                     <div key={m.chat_id} className="flex items-center justify-between gap-2 rounded-xl bg-bg px-3 py-2">
-                        <span className="font-semibold">{m.name || 'Мастер'}</span>
+                        <span className="font-semibold">{m.name || 'Маэстро'}</span>
                         <form action={tgRemoveMaster.bind(null, m.chat_id)}>
-                            <ConfirmButton message={`Отключить ${m.name || 'этого мастера'} от бота? Сообщения клиентов ему больше не будут приходить.`} className="text-sm text-muted">Отключить</ConfirmButton>
+                            <ConfirmButton message={`Отключить ${m.name || 'этого Маэстро'} от бота? Сообщения клиентов ему больше не будут приходить.`} className="text-sm text-muted">Отключить</ConfirmButton>
                         </form>
                     </div>
                 ))}
                 <a href={masterLink()} target="_blank" rel="noreferrer" className="btn-ghost min-h-[44px] text-sm">
                     <Bot size={18} className="text-[#2AABEE]" />{masters.length ? 'Подключить ещё один Telegram' : 'Подключить свой Telegram'}
                 </a>
-                <p className="text-xs text-muted">Откройте эту кнопку на телефоне того, кого подключаете (например, Ильдара), и нажмите «Старт» в боте.</p>
+                <p className="text-xs text-muted">Откройте эту кнопку на телефоне того, кого подключаете, и нажмите «Старт» в боте.</p>
             </section>
             {threads.length === 0 && <p className="card p-6 text-center text-muted">Пока никто не подписался. Покажите клиенту QR-код в карточке машины или общий ниже.</p>}
             <ul className="flex flex-col gap-2">

@@ -9,7 +9,7 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
             <div className="text-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/logo.webp" alt="Garaggio" className="mx-auto w-full max-w-xs rounded-3xl" />
-                <p className="mt-3 text-gold">Бонджорно, маэстро! 🤌</p>
+                <p className="mt-3 text-gold">Бонджорно, Маэстро! 🤌</p>
             </div>
             <LoginForm error={!!searchParams.error} />
         </main>

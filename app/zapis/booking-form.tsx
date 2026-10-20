@@ -13,8 +13,8 @@ const mskHour = () => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europ
 type Mood = 'dinner' | 'night' | 'morning' | null
 const moodNow = (): Mood => { const h = mskHour(); return h >= 20 && h < 22 ? 'dinner' : h >= 22 || h < 6 ? 'night' : h < 8 ? 'morning' : null }
 const MOOD: Record<Exclude<Mood, null>, { icon: string; title: string; text: string }> = {
-    dinner: { icon: '🍕🍷', title: 'Маэстро ужинает', text: 'Ильдар моет руки, достаёт пиццу «Маргарита» и наливает бокал Кьянти. На сегодня Garaggio закрывается — а завтра с 8:00 ждём вас! Записаться можно прямо сейчас.' },
-    night: { icon: '🌙😴', title: 'Тссс… маэстро спит', text: 'И видит во сне идеальный развал-схождение. Garaggio откроется в 8:00 — а записаться можно уже сейчас, утром маэстро всё увидит и подтвердит.' },
+    dinner: { icon: '🍕🍷', title: 'Маэстро ужинает', text: 'Маэстро моет руки, достаёт пиццу «Маргарита» и наливает бокал Кьянти. На сегодня Garaggio закрывается — а завтра с 8:00 ждём вас! Записаться можно прямо сейчас.' },
+    night: { icon: '🌙😴', title: 'Тссс… Маэстро спит', text: 'И видит во сне идеальный развал-схождение. Garaggio откроется в 8:00 — а записаться можно уже сейчас, утром Маэстро всё увидит и подтвердит.' },
     morning: { icon: '☕🥐', title: 'Маэстро пьёт эспрессо', text: 'Доедает корнетто и греет руки о чашку. Открываемся в 8:00 — выбирайте время, подтвердим, как только начнём день!' },
 }
 
@@ -62,7 +62,7 @@ export function BookingForm({ days, works }: { days: string[]; works: { id: stri
             <section className="card flex flex-col items-center gap-3 p-6 text-center">
                 <CheckCircle2 size={48} className="text-olive" />
                 <h2 className="text-xl font-black">Заявка отправлена!</h2>
-                <p className="text-muted">{fmt(day, { weekday: 'long', day: 'numeric', month: 'long' })}, {time}<br />Мастер подтвердит запись и напишет вам. Грацие! 🤌</p>
+                <p className="text-muted">{fmt(day, { weekday: 'long', day: 'numeric', month: 'long' })}, {time}<br />Маэстро подтвердит запись и напишет вам. Грацие! 🤌</p>
             </section>
         )
     }
@@ -114,8 +114,8 @@ export function BookingForm({ days, works }: { days: string[]; works: { id: stri
                     : slots.length === 0 ? (
                         <div className="flex flex-col gap-2 rounded-xl border border-tomato/40 bg-tomato/10 p-3 text-sm">
                             {day === days[0]
-                                ? <span>{mood === 'night' ? '🌙 Сегодня Garaggio уже спит' : '🍕 На сегодня маэстро закончил'} — выберите другой день, мы вас ждём!</span>
-                                : <span>🤌 Этот день расписан — маэстро нарасхват! Выберите другой.</span>}
+                                ? <span>{mood === 'night' ? '🌙 Сегодня Garaggio уже спит' : '🍕 На сегодня Маэстро закончил'} — выберите другой день, мы вас ждём!</span>
+                                : <span>🤌 Этот день расписан — Маэстро нарасхват! Выберите другой.</span>}
                             {(() => { const next = days.find((d) => d > day && avail?.[d]); return next && (
                                 <button type="button" onClick={() => setDay(next)} className="btn-primary min-h-[44px] text-sm">
                                     Записаться на {next === days[1] ? 'завтра' : fmt(next, { weekday: 'short', day: 'numeric', month: 'short' })}
@@ -148,7 +148,7 @@ export function BookingForm({ days, works }: { days: string[]; works: { id: stri
             <button className="btn-primary" disabled={busy}>
                 {busy ? 'Отправляем…' : time ? `Записаться: ${fmt(day, { day: 'numeric', month: 'short' })}, ${time}` : 'Записаться'}
             </button>
-            <p className="text-center text-xs text-muted">Нажимая «Записаться», вы соглашаетесь, что мастер свяжется с вами по этому номеру.</p>
+            <p className="text-center text-xs text-muted">Нажимая «Записаться», вы соглашаетесь, что Маэстро свяжется с вами по этому номеру.</p>
         </form>
     )
 }
