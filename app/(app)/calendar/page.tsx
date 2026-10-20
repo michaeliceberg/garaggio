@@ -4,7 +4,9 @@ import { countByDay, endTime, getDay, nowMskTime, todayMsk, WORK_DAY, apptWho, a
 import { telHref } from '@/lib/format'
 import { apptText } from '@/lib/messages'
 import { ttsEnabled } from '@/lib/tts'
-import { setApptStatus } from '@/app/actions'
+import { confirmAppt, setApptStatus } from '@/app/actions'
+import QRCode from 'qrcode'
+import { Link2 } from 'lucide-react'
 import { PlateBadge } from '@/components/plate'
 import { MessageButtons } from '@/components/message-buttons'
 
@@ -80,7 +82,25 @@ export default async function CalendarPage({ searchParams }: { searchParams: { d
                 {items.length === 0 && <li className="card p-6 text-center text-muted">{day < today ? 'В этот день записей не было.' : 'Записей нет.'}</li>}
             </ol>
             {day >= today && <Link href={`/calendar/new?d=${day}`} className="btn-primary w-full"><Plus size={20} />Записать на этот день</Link>}
+            <SelfBookingLink />
         </>
+    )
+}
+
+// Ссылка для самозаписи клиентов: QR (распечатать в гараже) и готовое сообщение со ссылкой
+async function SelfBookingLink() {
+    const url = 'https://garaggio.ru/zapis'
+    const svg = await QRCode.toString(url, { type: 'svg', margin: 1, color: { dark: '#14181C', light: '#FFFFFF' } })
+    return (
+        <details className="fold bg-card">
+            <summary className="fold-summary"><Link2 size={18} className="text-olive" />Ссылка для самозаписи клиентов</summary>
+            <div className="fold-body flex flex-col gap-3">
+                <p className="text-sm text-muted">Клиент открывает ссылку, выбирает свободное время — заявка появляется здесь, а вам приходит сообщение в Telegram. Вы подтверждаете одной кнопкой.</p>
+                <a href={url} target="_blank" rel="noreferrer" className="break-all text-center font-bold text-gold">garaggio.ru/zapis</a>
+                <div className="mx-auto w-48 overflow-hidden rounded-xl bg-white p-2" dangerouslySetInnerHTML={{ __html: svg }} />
+                <MessageButtons phone="" templates={[{ id: 'self', label: 'Ссылка', text: `Чао! Это Garaggio 🤌 Записаться к нам можно здесь — выберите удобное время: ${url}` }]} />
+            </div>
+        </details>
     )
 }
 
@@ -92,7 +112,7 @@ function ApptCard({ a, past, voice }: { a: Appt; past: boolean; voice: boolean }
     const done = a.status === 'done'
     const msg = { brand: a.brand ?? '', model: a.model ?? '', owner_name: apptWho(a) === 'Клиент' ? '' : apptWho(a) }
     return (
-        <li className={`card flex flex-col gap-2 p-3 ${cancelled ? 'opacity-50' : ''} ${done ? 'border-olive/40' : ''}`}>
+        <li className={`card flex flex-col gap-2 p-3 ${cancelled ? 'opacity-50' : ''} ${done ? 'border-olive/40' : ''} ${a.status === 'pending' ? 'border-gold/60' : ''}`}>
             <div className="flex items-start gap-3">
                 <div className="w-14 shrink-0 text-center">
                     <div className={`text-lg font-black leading-tight ${cancelled ? 'line-through' : ''}`}>{a.start_time}</div>
@@ -103,7 +123,7 @@ function ApptCard({ a, past, voice }: { a: Appt; past: boolean; voice: boolean }
                         <Link href={`/cars/${a.car_id}`} className="flex flex-wrap items-center gap-2">
                             <PlateBadge plate={a.plate ?? ''} /><span className="truncate font-bold">{apptCar(a) || 'Машина'}</span>
                         </Link>
-                    ) : <div className="font-bold">{a.client_name || 'Новый клиент'} <span className="text-xs font-semibold text-gold">машина не заведена</span></div>}
+                    ) : <div className="font-bold">{a.client_name || 'Новый клиент'} <span className="text-xs font-semibold text-gold">{a.client_car || 'машина не заведена'}</span></div>}
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-sm text-muted">
                         {a.car_id && <span>{apptWho(a)}</span>}
                         {phone && <a href={telHref(phone)} className="flex items-center gap-1"><Phone size={14} />{phone}</a>}
@@ -111,9 +131,16 @@ function ApptCard({ a, past, voice }: { a: Appt; past: boolean; voice: boolean }
                     {a.work && <p className="mt-1 whitespace-pre-wrap text-sm">{a.work}</p>}
                     {done && <p className="mt-1 text-sm font-bold text-olive">✓ Приехал{a.visit_id && <> · <Link href={`/visits/${a.visit_id}`} className="underline">визит</Link></>}</p>}
                     {cancelled && <p className="mt-1 text-sm font-bold text-tomato">Отменено</p>}
+                    {a.status === 'pending' && <p className="mt-1 text-sm font-bold text-gold">🆕 Заявка с сайта — ждёт подтверждения</p>}
                 </div>
                 <Link href={`/calendar/${a.id}`} className="text-muted" aria-label="Изменить запись"><Pencil size={18} /></Link>
             </div>
+            {a.status === 'pending' && (
+                <div className="grid grid-cols-2 gap-2">
+                    <form action={confirmAppt.bind(null, a.id)}><button className="btn-primary min-h-[44px] w-full px-3 text-sm">Подтвердить</button></form>
+                    <form action={setApptStatus.bind(null, a.id, 'cancelled')}><button className="btn-ghost min-h-[44px] w-full px-3 text-sm text-muted">Отклонить</button></form>
+                </div>
+            )}
             {a.status === 'planned' && (
                 <>
                     <div className="grid grid-cols-2 gap-2">

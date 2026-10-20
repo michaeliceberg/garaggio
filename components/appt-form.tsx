@@ -13,7 +13,7 @@ type CarLite = { id: number; plate: string; brand: string; model: string; owner_
 type Initial = { id?: number; car_id: number | null; client_name: string; client_phone: string; day: string; start_time: string; duration_min: number; work: string }
 
 const DURATIONS = [[30, '30 мин'], [60, '1 час'], [90, '1,5 ч'], [120, '2 часа'], [180, '3 часа'], [240, '4 часа'], [480, 'Весь день']] as const
-const TIMES = Array.from({ length: 23 }, (_, i) => `${String(9 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
+const TIMES = Array.from({ length: 28 }, (_, i) => `${String(8 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`) // 08:00–21:30, Ильдар работает 8–22
 
 // Запись в календарь: машина из базы (поиск по номеру/имени/марке) или новый клиент (имя + телефон),
 // день, время кнопками, длительность, что делать. Если время занято — показываем с кем и спрашиваем.

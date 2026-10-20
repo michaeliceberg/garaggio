@@ -90,3 +90,7 @@ CREATE TABLE IF NOT EXISTS appointments (
 );
 CREATE INDEX IF NOT EXISTS appointments_day_idx ON appointments (day, start_time);
 CREATE INDEX IF NOT EXISTS appointments_car_idx ON appointments (car_id);
+-- самозапись: заявки клиентов со страницы /zapis приходят со status = 'pending' и source = 'client';
+-- client_car — машина словами («Zeekr 001»), если клиента ещё нет в базе
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'master';
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS client_car text NOT NULL DEFAULT '';

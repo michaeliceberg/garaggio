@@ -2,19 +2,28 @@ import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { LiveSearch } from '@/components/live-search'
 import { searchCars, getDue } from '@/lib/data'
-import { getDay, todayMsk, apptCar, apptWho } from '@/lib/appts'
+import { getDay, todayMsk, apptCar, apptWho, pendingAppts } from '@/lib/appts'
 import { dateRu } from '@/lib/format'
 import { PlateBadge } from '@/components/plate'
 
 // Главная: поиск по номеру / имени / телефону / марке и список машин (свежие визиты — сверху).
 export default async function Home({ searchParams }: { searchParams: { q?: string } }) {
     const q = searchParams.q ?? ''
-    const [cars, due, today] = await Promise.all([searchCars(q), q ? Promise.resolve([]) : getDue(), q ? Promise.resolve([]) : getDay(todayMsk())])
+    const [cars, due, today, pending] = await Promise.all([searchCars(q), q ? Promise.resolve([]) : getDue(), q ? Promise.resolve([]) : getDay(todayMsk()), q ? Promise.resolve([]) : pendingAppts()])
     const waiting = today.filter((a) => a.status === 'planned')
     const byPhone = q.replace(/\D/g, '').length >= 3 // ищут по цифрам — показываем телефон в строке
     return (
         <>
             <LiveSearch initial={q} />
+            {!q && pending.length > 0 && (
+                <Link href={`/calendar?d=${pending[0].day}`} className="card flex items-center justify-between gap-2 border-gold/60 bg-gold/10 p-4">
+                    <span className="min-w-0">
+                        <span className="font-bold text-gold">🆕 Новые заявки на запись: {pending.length}</span>
+                        <span className="block truncate text-sm text-muted">{pending.slice(0, 2).map((a) => `${a.client_name || apptWho(a)} — ${new Date(a.day + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} ${a.start_time}`).join(' · ')}</span>
+                    </span>
+                    <ChevronRight className="shrink-0 text-gold" />
+                </Link>
+            )}
             {!q && waiting.length > 0 && (
                 <Link href="/calendar" className="card flex items-center justify-between gap-2 border-basil/50 bg-basil/10 p-4">
                     <span className="min-w-0">

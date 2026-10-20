@@ -55,7 +55,7 @@ export default async function CarPage({ params }: { params: { id: string } }) {
 
             {appts.map((a) => (
                 <Link key={a.id} href={`/calendar?d=${a.day}`} className="card flex items-center justify-between gap-2 border-basil/50 p-3 text-sm">
-                    <span><b className="text-olive">📅 Записан:</b> {new Date(a.day + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' })}, {a.start_time}{a.work && ` — ${a.work.split('\n').filter(Boolean).join(', ')}`}</span>
+                    <span><b className="text-olive">{a.status === 'pending' ? '🆕 Заявка:' : '📅 Записан:'}</b> {new Date(a.day + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' })}, {a.start_time}{a.work && ` — ${a.work.split('\n').filter(Boolean).join(', ')}`}</span>
                 </Link>
             ))}
             <div className="grid grid-cols-[1fr_auto] gap-2">

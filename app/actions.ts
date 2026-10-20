@@ -11,6 +11,7 @@ import { parseVoiceText, type VoiceParsed } from '@/lib/ai'
 import { sendToClient, sendVoiceToClient } from '@/lib/tg'
 import { synthesize } from '@/lib/tts'
 import { apptCar, apptWho, conflicts, endTime } from '@/lib/appts'
+import { apptText } from '@/lib/messages'
 import { formatPhone, guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
@@ -186,4 +187,15 @@ export async function deleteAppt(f: FormData) {
     const [a] = id ? await sql<{ day: string }[]>`DELETE FROM appointments WHERE id = ${id} RETURNING day::text AS day` : []
     revalidatePath('/calendar'); revalidatePath('/')
     redirect(`/calendar${a ? `?d=${a.day}` : ''}`)
+}
+// Заявка клиента с /zapis: подтвердить (если клиент в боте — сразу пишем ему «Ждём вас…») или отклонить
+export async function confirmAppt(id: number) {
+    requireAuth()
+    await sql`UPDATE appointments SET status = 'planned' WHERE id = ${id} AND status = 'pending'`
+    const [a] = await sql<{ tg: string | null; brand: string; model: string; owner_name: string; client_name: string; day: string; t: string; work: string }[]>`
+        SELECT c.tg_chat_id::text AS tg, coalesce(c.brand, '') AS brand, coalesce(c.model, '') AS model, coalesce(c.owner_name, '') AS owner_name,
+               a.client_name, a.day::text AS day, to_char(a.start_time, 'HH24:MI') AS t, a.work
+        FROM appointments a LEFT JOIN cars c ON c.id = a.car_id WHERE a.id = ${id}`
+    if (a?.tg) await sendToClient(a.tg, apptText({ brand: a.brand, model: a.model, owner_name: a.owner_name || a.client_name }, a.day, a.t, a.work)).catch(() => {})
+    revalidatePath('/calendar'); revalidatePath('/')
 }

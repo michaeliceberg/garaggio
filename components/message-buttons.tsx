@@ -123,6 +123,17 @@ export function MessageButtons({ phone, templates, tgCarId, voice }: { phone: st
                     {note ? <Check size={18} /> : <Copy size={18} />}Скопировать
                 </button>
             </div>}
+            {!phone && !tgCarId && (
+                <div className="grid grid-cols-2 gap-2">
+                    <button type="button" className={`${btn} border-line text-white`} onClick={async () => flash((await copy()) ? 'Скопировано — вставьте в чат' : 'Не получилось скопировать')}>
+                        <Copy size={18} />Скопировать
+                    </button>
+                    <button type="button" className={`${btn} border-[#2AABEE]/50 text-[#2AABEE]`}
+                        onClick={async () => { if (navigator.share) { try { await navigator.share({ text }) } catch { /* закрыли меню */ } } else flash((await copy()) ? 'Скопировано — вставьте в чат' : 'Не получилось скопировать') }}>
+                        <Share2 size={18} />Поделиться
+                    </button>
+                </div>
+            )}
             {note && <p className="text-center text-sm font-semibold text-olive">{note}</p>}
         </div>
     )
