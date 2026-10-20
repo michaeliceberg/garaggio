@@ -55,3 +55,11 @@ export async function book(input: { day: string; time: string; workId: string; c
     }
     return { ok: true, id: a.id }
 }
+
+// Сколько свободных начал в каждый из дней (полоска дней: закрытые — серые, выбираем первый свободный)
+export async function getAvailability(days: string[], workId: string) {
+    const ok = days.filter(validDay).slice(0, SELF_DAYS_AHEAD + 1)
+    const minutes = workOf(workId).minutes
+    const counts = await Promise.all(ok.map((d) => freeSlots(d, minutes).then((s) => s.length)))
+    return Object.fromEntries(ok.map((d, i) => [d, counts[i]])) as Record<string, number>
+}

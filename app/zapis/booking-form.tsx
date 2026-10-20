@@ -5,9 +5,19 @@ import { Wrench, CalendarDays, User, CheckCircle2 } from 'lucide-react'
 import { Section } from '@/components/form-section'
 import { PhoneInput } from '@/components/phone-input'
 import { PlateInput } from '@/components/plate-input'
-import { book, getSlots } from './actions'
+import { book, getAvailability, getSlots } from './actions'
 
 const fmt = (day: string, o: Intl.DateTimeFormatOptions) => new Date(day + 'T12:00:00Z').toLocaleDateString('ru-RU', { timeZone: 'UTC', ...o })
+// Шутки Garaggio по московскому времени: вечером маэстро ужинает, ночью спит, рано утром пьёт эспрессо
+const mskHour = () => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date())) % 24
+type Mood = 'dinner' | 'night' | 'morning' | null
+const moodNow = (): Mood => { const h = mskHour(); return h >= 20 && h < 22 ? 'dinner' : h >= 22 || h < 6 ? 'night' : h < 8 ? 'morning' : null }
+const MOOD: Record<Exclude<Mood, null>, { icon: string; title: string; text: string }> = {
+    dinner: { icon: '🍕🍷', title: 'Маэстро ужинает', text: 'Ильдар моет руки, достаёт пиццу «Маргарита» и наливает бокал Кьянти. На сегодня Garaggio закрывается — а завтра с 8:00 ждём вас! Записаться можно прямо сейчас.' },
+    night: { icon: '🌙😴', title: 'Тссс… маэстро спит', text: 'И видит во сне идеальный развал-схождение. Garaggio откроется в 8:00 — а записаться можно уже сейчас, утром маэстро всё увидит и подтвердит.' },
+    morning: { icon: '☕🥐', title: 'Маэстро пьёт эспрессо', text: 'Доедает корнетто и греет руки о чашку. Открываемся в 8:00 — выбирайте время, подтвердим, как только начнём день!' },
+}
+
 const dur = (m: number) => (m % 60 ? `${Math.floor(m / 60) ? `${Math.floor(m / 60)},5 ч` : `${m} мин`}` : `${m / 60} ч`)
 
 // Самозапись по шагам на одной странице: что сделать → день и время (только свободное) → кто вы → «Записаться».
@@ -23,6 +33,22 @@ export function BookingForm({ days, works }: { days: string[]; works: { id: stri
     const [error, setError] = useState<string | null>(null)
     const [done, setDone] = useState(false)
     const work = works.find((w) => w.id === workId)!
+    const [avail, setAvail] = useState<Record<string, number> | null>(null)
+    const [mood, setMood] = useState<Mood>(null)
+    const [picked, setPicked] = useState(false) // день выбрали руками — не перескакиваем сами
+    useEffect(() => setMood(moodNow()), [])
+    // сколько свободного по дням; если выбранный день закрыт и его не выбирали руками — первый свободный
+    useEffect(() => {
+        let stop = false
+        getAvailability(days, workId).then((a) => {
+            if (stop) return
+            setAvail(a)
+            if (!picked && !a[day]) { const first = days.find((d) => a[d] > 0); if (first) setDay(first) }
+        })
+        return () => { stop = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [workId])
+    const closed = (d: string) => avail != null && !avail[d]
 
     useEffect(() => {
         let stop = false
@@ -65,18 +91,38 @@ export function BookingForm({ days, works }: { days: string[]; works: { id: stri
             </Section>
 
             <Section icon={<CalendarDays size={18} />} title="Когда удобно" color="#53ADEF">
+                {mood && (
+                    <div className="flex gap-3 rounded-xl border border-gold/40 bg-gold/10 p-3">
+                        <span className="text-2xl leading-none">{MOOD[mood].icon}</span>
+                        <div className="text-sm"><b className="text-gold">{MOOD[mood].title}</b><br /><span className="text-cream/80">{MOOD[mood].text}</span></div>
+                    </div>
+                )}
                 <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
                     {days.map((d, i) => (
-                        <button key={d} type="button" onClick={() => setDay(d)}
-                            className={`flex min-w-[52px] flex-col items-center rounded-xl border py-1.5 text-xs font-semibold ${d === day ? 'border-basil bg-basil text-white' : 'border-line text-muted'}`}>
+                        <button key={d} type="button" onClick={() => { setDay(d); setPicked(true) }}
+                            className={`flex min-w-[52px] flex-col items-center rounded-xl border py-1.5 text-xs font-semibold ${
+                                d === day ? (closed(d) ? 'border-tomato/70 bg-tomato/10 text-tomato' : 'border-basil bg-basil text-white')
+                                    : closed(d) ? 'border-line/50 text-muted/40' : 'border-line text-muted'}`}>
                             <span>{i === 0 ? 'Сег.' : i === 1 ? 'Завт.' : fmt(d, { weekday: 'short' })}</span>
-                            <span className="text-lg font-black leading-tight">{fmt(d, { day: 'numeric' })}</span>
+                            <span className={`text-lg font-black leading-tight ${closed(d) ? 'line-through decoration-2' : ''}`}>{fmt(d, { day: 'numeric' })}</span>
+                            {closed(d) && <span className="text-[9px] leading-none">закрыто</span>}
                         </button>
                     ))}
                 </div>
                 <div className="text-sm text-muted first-letter:uppercase">{fmt(day, { weekday: 'long', day: 'numeric', month: 'long' })} · займёт около {dur(work.minutes)}</div>
                 {slots === null ? <p className="text-sm text-muted">Смотрим свободное время…</p>
-                    : slots.length === 0 ? <p className="rounded-xl bg-bg p-3 text-sm text-muted">На этот день свободного времени нет — выберите другой.</p>
+                    : slots.length === 0 ? (
+                        <div className="flex flex-col gap-2 rounded-xl border border-tomato/40 bg-tomato/10 p-3 text-sm">
+                            {day === days[0]
+                                ? <span>{mood === 'night' ? '🌙 Сегодня Garaggio уже спит' : '🍕 На сегодня маэстро закончил'} — выберите другой день, мы вас ждём!</span>
+                                : <span>🤌 Этот день расписан — маэстро нарасхват! Выберите другой.</span>}
+                            {(() => { const next = days.find((d) => d > day && avail?.[d]); return next && (
+                                <button type="button" onClick={() => setDay(next)} className="btn-primary min-h-[44px] text-sm">
+                                    Записаться на {next === days[1] ? 'завтра' : fmt(next, { weekday: 'short', day: 'numeric', month: 'short' })}
+                                </button>
+                            ) })()}
+                        </div>
+                    )
                         : (
                             <div className="grid grid-cols-4 gap-1.5">
                                 {slots.map((t) => (
