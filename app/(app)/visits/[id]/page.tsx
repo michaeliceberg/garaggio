@@ -4,6 +4,7 @@ import { Pencil, X, AlertTriangle } from 'lucide-react'
 import { getCar, getPhotos, getVisit } from '@/lib/data'
 import { dateRu, km, rub, partsTotal } from '@/lib/format'
 import { PaidToggle } from '@/components/paid-toggle'
+import { MONEY } from '@/lib/features'
 import { kindLabel } from '@/lib/photo-client'
 import { PlateBadge } from '@/components/plate'
 import { AddPhotos } from '@/components/add-photos'
@@ -38,17 +39,19 @@ export default async function VisitPage({ params }: { params: { id: string } }) 
                             {visit.parts.map((p, i) => (
                                 <tr key={i} className="border-t border-line">
                                     <td className="py-2 pr-2">{p.name}{p.article && <div className="text-xs text-muted">{p.article}</div>}</td>
-                                    <td className="py-2 text-right whitespace-nowrap">{p.price ? rub(p.price) : ''}</td>
+                                    {MONEY && <td className="py-2 text-right whitespace-nowrap">{p.price ? rub(p.price) : ''}</td>}
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 )}
-                <div className="flex justify-between rounded-xl bg-bg p-3 text-sm">
-                    <span className="text-muted">Детали {rub(partsSum)} · работа {rub(visit.labor_cost)}</span>
-                    <b className="text-olive">{rub(partsSum + visit.labor_cost)}</b>
-                </div>
-                <PaidToggle visitId={visit.id} paid={visit.paid} />
+                {MONEY && <>
+                    <div className="flex justify-between rounded-xl bg-bg p-3 text-sm">
+                        <span className="text-muted">Детали {rub(partsSum)} · работа {rub(visit.labor_cost)}</span>
+                        <b className="text-olive">{rub(partsSum + visit.labor_cost)}</b>
+                    </div>
+                    <PaidToggle visitId={visit.id} paid={visit.paid} />
+                </>}
                 {visit.notes && <p className="whitespace-pre-wrap rounded-xl bg-bg p-3 text-sm">📝 {visit.notes}</p>}
                 {visit.recommendations && (
                     <div className={`rounded-xl p-3 text-sm ${visit.declined ? 'bg-gold/10 text-gold' : 'bg-bg'}`}>

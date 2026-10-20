@@ -21,7 +21,7 @@ export function ShareReport({ visitId, token: initial, phone, hello, car, tgCarI
             </button>
         )
     }
-    const text = `${hello} Это Garaggio 🤌 Вот отчёт о визите (${car}): что сделали, фото и итог — ${url}`
+    const text = `${hello} Это Garaggio 🤌 Вот отчёт о визите (${car}): что сделали и фото — ${url}`
     return (
         <div className="card flex flex-col gap-3 p-4">
             <div className="flex items-center justify-between gap-2">

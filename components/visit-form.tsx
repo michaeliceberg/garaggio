@@ -10,6 +10,7 @@ import { compressPhoto, uploadPhoto } from '@/lib/photo-client'
 import { PhotoPicker, type PendingPhoto } from './photo-picker'
 import { VoiceInput } from './voice-input'
 import { Section } from './form-section'
+import { MONEY } from '@/lib/features'
 import type { VoiceParsed } from '@/lib/ai'
 
 const addMonths = (iso: string, m: number) => { const d = new Date(iso); d.setMonth(d.getMonth() + m); return toISODate(d) }
@@ -137,14 +138,15 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId
                     </button>
                 </div>
                 {parts.map((p, i) => (
-                    <div key={i} className="grid grid-cols-[1fr_auto] gap-2 rounded-xl bg-bg p-2">
+                    <div key={i} className={`grid gap-2 rounded-xl bg-bg p-2 grid-cols-[1fr_auto]`}>
                         <input value={p.name} onChange={(e) => onPartName(i, e.target.value)} list="known-parts" className="input" placeholder="Масло Shell 5W-30, 4 л" />
                         <button type="button" aria-label="Удалить деталь" onClick={() => setParts(parts.filter((_, j) => j !== i))} className="px-2 text-muted"><Trash2 size={18} /></button>
-                        <input value={p.article ?? ''} onChange={(e) => setPart(i, { article: e.target.value })} className="input" placeholder="Артикул / производитель" />
-                        <input inputMode="numeric" value={p.price ? String(p.price) : ''} onChange={(e) => setPart(i, { price: num(e.target.value) ?? 0 })} className="input w-28" placeholder="₽" />
+                        <input value={p.article ?? ''} onChange={(e) => setPart(i, { article: e.target.value })} className={`input ${MONEY ? '' : 'col-span-2'}`} placeholder="Артикул / производитель" />
+                        {MONEY && <input inputMode="numeric" value={p.price ? String(p.price) : ''} onChange={(e) => setPart(i, { price: num(e.target.value) ?? 0 })} className="input w-28" placeholder="₽" />}
                     </div>
                 ))}
                 <datalist id="known-parts">{known.allParts.map((p) => <option key={p.name} value={p.name} />)}</datalist>
+                {MONEY && <>
                 <div className="grid grid-cols-2 items-end gap-3">
                     <div>
                         <label className="label">Работа, ₽</label>
@@ -159,6 +161,7 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId
                     <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} className="h-6 w-6 accent-olive" />
                     <span className="text-sm">{paid ? <>Клиент <b>оплатил</b></> : <b className="text-tomato">Ещё не оплачено — попадёт в «Деньги → Долги»</b>}</span>
                 </label>
+                </>}
             </Section>
 
             <Section icon={<Camera size={18} />} title="Фото" color="#8DB255">

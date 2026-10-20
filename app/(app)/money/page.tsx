@@ -1,3 +1,5 @@
+import { notFound } from 'next/navigation'
+import { MONEY } from '@/lib/features'
 import Link from 'next/link'
 import { getMoney } from '@/lib/data'
 import { dateRu, partsTotal, rub } from '@/lib/format'
@@ -9,6 +11,7 @@ const monthLabel = (m: string) => { const [y, mm] = m.split('-'); return `${MONT
 
 // Деньги: кто должен (неоплаченные визиты) и выручка по месяцам — работа отдельно от деталей.
 export default async function MoneyPage() {
+    if (!MONEY) notFound()
     const { months, unpaid } = await getMoney()
     const debt = unpaid.reduce((s, v) => s + v.labor_cost + partsTotal(v.parts), 0)
     const now = new Date(), thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`

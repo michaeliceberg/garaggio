@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { LogOut, Wallet } from 'lucide-react'
 import { BottomNav } from '@/components/bottom-nav'
+import { MONEY } from '@/lib/features'
 import { requireAuth } from '@/lib/auth'
 import { logout } from '../actions'
 import { tgEnabled, unreadCount } from '@/lib/tg'
@@ -18,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                     <img src="/logo-small.webp" alt="Garaggio" className="h-12 w-auto rounded-lg" />
                 </Link>
                 <div className="flex items-center gap-4">
-                    <Link href="/money" className="flex items-center gap-1.5 text-sm font-semibold text-muted"><Wallet size={20} />Деньги</Link>
+                    {MONEY && <Link href="/money" className="flex items-center gap-1.5 text-sm font-semibold text-muted"><Wallet size={20} />Деньги</Link>}
                     <form action={logout}>
                         <button className="flex items-center gap-1 text-sm text-muted" aria-label="Выйти"><LogOut size={18} /></button>
                     </form>

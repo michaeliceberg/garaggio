@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getCar, getPhotos, getVisitByToken } from '@/lib/data'
 import { dateRu, km, rub, partsTotal } from '@/lib/format'
+import { MONEY } from '@/lib/features'
 import { kindLabel } from '@/lib/photo-client'
 
 export const metadata: Metadata = { title: 'Отчёт о визите — Garaggio', robots: { index: false, follow: false } }
@@ -28,21 +29,21 @@ export default async function Report({ params }: { params: { token: string } }) 
                     <ul className="flex flex-col gap-1.5">{works.map((w, i) => <li key={i} className="flex gap-2"><span className="text-olive">✓</span>{w}</li>)}</ul>
                 </section>
             )}
-            {(visit.parts.length > 0 || visit.labor_cost > 0) && (
+            {(visit.parts.length > 0 || (MONEY && visit.labor_cost > 0)) && (
                 <section className="card p-4">
-                    <h2 className="mb-2 font-black">Детали и работа</h2>
+                    <h2 className="mb-2 font-black">{MONEY ? 'Детали и работа' : 'Детали'}</h2>
                     <table className="w-full text-sm">
                         <tbody>
                             {visit.parts.map((p, i) => (
                                 <tr key={i} className="border-t border-line">
                                     <td className="py-2 pr-2">{p.name}{p.article && <div className="text-xs text-muted">{p.article}</div>}</td>
-                                    <td className="py-2 text-right whitespace-nowrap">{p.price ? rub(p.price) : ''}</td>
+                                    {MONEY && <td className="py-2 text-right whitespace-nowrap">{p.price ? rub(p.price) : ''}</td>}
                                 </tr>
                             ))}
-                            {visit.labor_cost > 0 && <tr className="border-t border-line"><td className="py-2">Работа</td><td className="py-2 text-right">{rub(visit.labor_cost)}</td></tr>}
+                            {MONEY && visit.labor_cost > 0 && <tr className="border-t border-line"><td className="py-2">Работа</td><td className="py-2 text-right">{rub(visit.labor_cost)}</td></tr>}
                         </tbody>
                     </table>
-                    <div className="mt-2 flex justify-between rounded-xl bg-olive/15 p-3 font-black text-olive"><span>Итого</span><span>{rub(partsSum + visit.labor_cost)}</span></div>
+                    {MONEY && <div className="mt-2 flex justify-between rounded-xl bg-olive/15 p-3 font-black text-olive"><span>Итого</span><span>{rub(partsSum + visit.labor_cost)}</span></div>}
                 </section>
             )}
             {photos.length > 0 && (
