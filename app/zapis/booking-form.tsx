@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Wrench, CalendarDays, User, CheckCircle2 } from 'lucide-react'
 import { Section } from '@/components/form-section'
 import { PhoneInput } from '@/components/phone-input'
+import { PlateInput } from '@/components/plate-input'
 import { book, getSlots } from './actions'
 
 const fmt = (day: string, o: Intl.DateTimeFormatOptions) => new Date(day + 'T12:00:00Z').toLocaleDateString('ru-RU', { timeZone: 'UTC', ...o })
@@ -47,7 +48,7 @@ export function BookingForm({ days, works }: { days: string[]; works: { id: stri
             if (!time) { setError('Выберите время'); return }
             setBusy(true); setError(null)
             try {
-                const r = await book({ day, time, workId, comment, name, car, phone: String(f.get('owner_phone') ?? ''), website: String(f.get('website') ?? '') })
+                const r = await book({ day, time, workId, comment, name, car, phone: String(f.get('owner_phone') ?? ''), plate: String(f.get('plate') ?? ''), website: String(f.get('website') ?? '') })
                 if ('error' in r && r.error) { setError(r.error); if (r.error.includes('заняли')) getSlots(day, workId).then(setSlots) }
                 else setDone(true)
             } finally { setBusy(false) }
@@ -91,7 +92,8 @@ export function BookingForm({ days, works }: { days: string[]; works: { id: stri
                     <div className="min-w-0"><label className="label" htmlFor="bname">Имя</label><input id="bname" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} className="input" placeholder="Андрей" autoComplete="given-name" /></div>
                     <PhoneInput />
                 </div>
-                <div><label className="label" htmlFor="bcar">Машина</label><input id="bcar" value={car} onChange={(e) => setCar(e.target.value)} maxLength={60} className="input" placeholder="Toyota Camry, А123ВС77" /></div>
+                <div><label className="label" htmlFor="bcar">Машина</label><input id="bcar" value={car} onChange={(e) => setCar(e.target.value)} maxLength={60} className="input" placeholder="Toyota Camry" /></div>
+                <PlateInput label="Госномер (если знаете)" />
                 {/* ловушка для ботов — люди это поле не видят */}
                 <input name="website" tabIndex={-1} autoComplete="off" className="absolute -left-[9999px] h-0 w-0 opacity-0" aria-hidden />
             </Section>

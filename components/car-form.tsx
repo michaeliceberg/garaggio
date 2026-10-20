@@ -6,6 +6,7 @@ import { CarPhotoScan } from './car-photo-scan'
 import { BrandInput } from './brand-input'
 import { ColorPicker } from './color-picker'
 import { ModelInput } from './model-input'
+import { PlateInput } from './plate-input'
 import { getKnownModels } from '@/lib/data'
 import { Section } from './form-section'
 import { Car as CarIcon, User, MessageSquare } from 'lucide-react'
@@ -28,7 +29,7 @@ export async function CarForm({ car, plate, owner, appt }: { car?: Car; plate?: 
             <Section icon={<CarIcon size={18} />} title="Машина" color="#F2C35B">
             <CarPhotoScan />
             <div className="grid grid-cols-2 gap-3">
-                <Field name="plate" label="Госномер" value={car?.plate ?? plate} placeholder="А123ВС77" className="col-span-2" />
+                <PlateInput defaultValue={car?.plate ?? plate ?? ''} autoOpen={!car && !plate} />
                 <BrandInput defaultValue={car?.brand} />
                 <ModelInput defaultValue={car?.model} defaultBrand={car?.brand} known={await getKnownModels()} />
                 <Field name="year" label="Год" value={car?.year} inputMode="numeric" placeholder="2008" />

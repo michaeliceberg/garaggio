@@ -6,13 +6,13 @@ import type { Powertrain } from './format'
 export type Appt = {
     id: number; car_id: number | null; client_name: string; client_phone: string; day: string; start_time: string
     duration_min: number; work: string; status: 'pending' | 'planned' | 'done' | 'cancelled'; visit_id: number | null
-    source: 'master' | 'client'; client_car: string
+    source: 'master' | 'client'; client_car: string; client_plate: string
     plate: string | null; brand: string | null; model: string | null; owner_name: string | null; owner_phone: string | null
     tg_chat_id: string | null
 }
 const SELECT = sql`
     SELECT a.id, a.car_id, a.client_name, a.client_phone, a.day::text AS day, to_char(a.start_time, 'HH24:MI') AS start_time,
-           a.duration_min, a.work, a.status, a.visit_id, a.source, a.client_car,
+           a.duration_min, a.work, a.status, a.visit_id, a.source, a.client_car, a.client_plate,
            c.plate, c.brand, c.model, c.owner_name, c.owner_phone, c.tg_chat_id::text AS tg_chat_id
     FROM appointments a LEFT JOIN cars c ON c.id = a.car_id`
 

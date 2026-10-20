@@ -110,3 +110,4 @@ CREATE TABLE IF NOT EXISTS tg_relay (
     client_chat   bigint NOT NULL,
     PRIMARY KEY (master_chat, master_msg_id)
 );
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS client_plate text NOT NULL DEFAULT ''; -- госномер из самозаписи

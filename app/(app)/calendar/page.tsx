@@ -123,7 +123,13 @@ function ApptCard({ a, past, voice }: { a: Appt; past: boolean; voice: boolean }
                         <Link href={`/cars/${a.car_id}`} className="flex flex-wrap items-center gap-2">
                             <PlateBadge plate={a.plate ?? ''} /><span className="truncate font-bold">{apptCar(a) || 'Машина'}</span>
                         </Link>
-                    ) : <div className="font-bold">{a.client_name || 'Новый клиент'} <span className="text-xs font-semibold text-gold">{a.client_car || 'машина не заведена'}</span></div>}
+                    ) : (
+                        <div className="flex flex-wrap items-center gap-2">
+                            {a.client_plate && <PlateBadge plate={a.client_plate} />}
+                            <span className="font-bold">{a.client_name || 'Новый клиент'}</span>
+                            <span className="text-xs font-semibold text-gold">{a.client_car || 'машина не заведена'}</span>
+                        </div>
+                    )}
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-sm text-muted">
                         {a.car_id && <span>{apptWho(a)}</span>}
                         {phone && <a href={telHref(phone)} className="flex items-center gap-1"><Phone size={14} />{phone}</a>}
@@ -146,7 +152,7 @@ function ApptCard({ a, past, voice }: { a: Appt; past: boolean; voice: boolean }
                     <div className="grid grid-cols-2 gap-2">
                         {a.car_id
                             ? <Link href={`/cars/${a.car_id}/visits/new?appt=${a.id}`} className="btn-primary min-h-[44px] px-3 text-sm"><Wrench size={18} />Начать визит</Link>
-                            : <Link href={`/cars/new?appt=${a.id}&name=${encodeURIComponent(a.client_name)}&phone=${encodeURIComponent(a.client_phone)}`} className="btn-primary min-h-[44px] px-3 text-sm"><CarIcon size={18} />Завести машину</Link>}
+                            : <Link href={`/cars/new?appt=${a.id}&name=${encodeURIComponent(a.client_name)}&phone=${encodeURIComponent(a.client_phone)}&plate=${encodeURIComponent(a.client_plate)}`} className="btn-primary min-h-[44px] px-3 text-sm"><CarIcon size={18} />Завести машину</Link>}
                         <form action={setApptStatus.bind(null, a.id, 'cancelled')}>
                             <button className="btn-ghost min-h-[44px] w-full px-3 text-sm text-muted">Отменить</button>
                         </form>

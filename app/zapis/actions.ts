@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
-import { formatPhone } from '@/lib/format'
+import { formatPhone, normPlate } from '@/lib/format'
 import { freeSlots, todayMsk, SELF_WORKS, SELF_DAYS_AHEAD } from '@/lib/appts'
 import { carsByPhone, notifyMasters, tgEnabled } from '@/lib/tg'
 import { phoneDigits } from '@/lib/messages'
@@ -21,9 +21,10 @@ export async function getSlots(day: string, workId: string) {
     return freeSlots(day, workOf(workId).minutes)
 }
 
-export async function book(input: { day: string; time: string; workId: string; comment: string; name: string; phone: string; car: string; website?: string }) {
+export async function book(input: { day: string; time: string; workId: string; comment: string; name: string; phone: string; car: string; plate?: string; website?: string }) {
     if (input.website) return { ok: true } // ловушка для ботов: скрытое поле заполняют только программы
     const name = input.name.trim().slice(0, 60), car = input.car.trim().slice(0, 60), comment = input.comment.trim().slice(0, 300)
+    const plate = normPlate(input.plate ?? '').slice(0, 12)
     const digits = phoneDigits(input.phone)
     if (!name) return { error: 'Напишите, как вас зовут' }
     if (digits.length < 11) return { error: 'Проверьте номер телефона' }
@@ -38,17 +39,19 @@ export async function book(input: { day: string; time: string; workId: string; c
     if (mine >= 3 || recent >= 30) return { error: 'Уже есть заявки с этого номера — мастер скоро свяжется' }
 
     const phone = formatPhone(digits)
-    const [car_id] = (await carsByPhone(phone)).map((c) => c.id) // клиент уже есть в базе — привяжем к его машине
+    // клиент уже есть в базе — привяжем к его машине: по номеру машины, иначе по телефону
+    const [byPlate] = plate.length >= 6 ? await sql<{ id: number }[]>`SELECT id FROM cars WHERE plate_norm = ${plate} LIMIT 1` : []
+    const car_id = byPlate?.id ?? (await carsByPhone(phone)).map((c) => c.id)[0]
     const workText = [work.text, comment].filter(Boolean).join('\n')
     const [a] = await sql<{ id: number }[]>`
-        INSERT INTO appointments (car_id, client_name, client_phone, client_car, day, start_time, duration_min, work, status, source)
-        VALUES (${car_id ?? null}, ${name}, ${phone}, ${car}, ${input.day}, ${input.time}, ${work.minutes}, ${workText}, 'pending', 'client')
+        INSERT INTO appointments (car_id, client_name, client_phone, client_car, client_plate, day, start_time, duration_min, work, status, source)
+        VALUES (${car_id ?? null}, ${name}, ${phone}, ${car}, ${plate}, ${input.day}, ${input.time}, ${work.minutes}, ${workText}, 'pending', 'client')
         RETURNING id`
     revalidatePath('/calendar'); revalidatePath('/')
 
     if (tgEnabled()) {
         const d = new Date(input.day + 'T12:00:00Z').toLocaleDateString('ru-RU', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'long' })
-        await notifyMasters(`📅 Новая заявка на запись\n${name}, ${phone}${car ? `\n🚗 ${car}` : ''}\n🕐 ${d}, ${input.time}\n🔧 ${workText.replace(/\n/g, ' · ') || 'не указано'}\n\nПодтвердить: https://garaggio.ru/calendar?d=${input.day}`)
+        await notifyMasters(`📅 Новая заявка на запись\n${name}, ${phone}${car || plate ? `\n🚗 ${[car, plate].filter(Boolean).join(' · ')}` : ''}\n🕐 ${d}, ${input.time}\n🔧 ${workText.replace(/\n/g, ' · ') || 'не указано'}\n\nПодтвердить: https://garaggio.ru/calendar?d=${input.day}`)
     }
     return { ok: true, id: a.id }
 }
