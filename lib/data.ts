@@ -26,7 +26,7 @@ export async function searchCars(q: string) {
         SELECT c.*, (SELECT max(visit_date) FROM visits v WHERE v.car_id = c.id) AS last_visit
         FROM cars c
         WHERE c.plate_norm LIKE ${'%' + n + '%'} OR lower(c.owner_name) LIKE ${like} OR lower(c.brand || ' ' || c.model) LIKE ${like}
-           OR (length(${digits}) >= 4 AND regexp_replace(c.owner_phone, '[^0-9]', '', 'g') LIKE ${'%' + digits + '%'})
+           OR (length(${digits}) >= 3 AND regexp_replace(c.owner_phone, '[^0-9]', '', 'g') LIKE ${'%' + digits + '%'})
         ORDER BY c.plate LIMIT 50`
 }
 export async function getCar(id: number) {

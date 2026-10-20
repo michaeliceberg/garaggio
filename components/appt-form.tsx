@@ -50,9 +50,21 @@ export function ApptForm({ cars, initial }: { cars: CarLite[]; initial: Initial 
         if (!s) return []
         const p = normPlate(s), digits = s.replace(/\D/g, '')
         return cars.filter((c) => normPlate(c.plate).includes(p) || `${c.brand} ${c.model} ${c.owner_name}`.toLowerCase().includes(s)
-            || (digits.length >= 4 && c.owner_phone.replace(/\D/g, '').includes(digits))).slice(0, 6)
+            || (digits.length >= 3 && c.owner_phone.replace(/\D/g, '').includes(digits))).slice(0, 6)
     }, [q, cars])
 
+    // телефон в подсказке: найденные цифры подсвечены («+7 916 099 19 97» при поиске «916»)
+    const phoneHit = (phone: string) => {
+        const digits = q.replace(/\D/g, '')
+        if (digits.length < 3) return phone
+        const all = phone.replace(/\D/g, ''), at = all.indexOf(digits)
+        if (at < 0) return phone
+        let n = 0
+        return [...phone].map((ch, i) => {
+            const isD = /\d/.test(ch), idx = isD ? n++ : -1
+            return <span key={i} className={isD && idx >= at && idx < at + digits.length ? 'font-bold text-gold' : ''}>{ch}</span>
+        })
+    }
     async function submit(force = false, phone = '') {
         setBusy(true); setError(null)
         try {
@@ -92,7 +104,10 @@ export function ApptForm({ cars, initial }: { cars: CarLite[]; initial: Initial 
                         {found.map((c) => (
                             <button key={c.id} type="button" onClick={() => setCarId(c.id)} className="flex items-center gap-3 rounded-xl border border-line p-2.5 text-left active:bg-card">
                                 <PlateBadge plate={c.plate} />
-                                <span className="min-w-0 flex-1 truncate text-sm"><b>{[c.brand, c.model].filter(Boolean).join(' ')}</b> {c.owner_name && <span className="text-muted">· {c.owner_name}</span>}</span>
+                                <span className="min-w-0 flex-1 text-sm">
+                                    <span className="block truncate"><b>{[c.brand, c.model].filter(Boolean).join(' ')}</b> {c.owner_name && <span className="text-muted">· {c.owner_name}</span>}</span>
+                                    {c.owner_phone && <span className="block truncate text-xs text-muted">{phoneHit(c.owner_phone)}</span>}
+                                </span>
                             </button>
                         ))}
                         {q && found.length === 0 && <p className="text-sm text-muted">Не нашлось.</p>}

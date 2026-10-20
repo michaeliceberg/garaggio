@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Search, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
+import { LiveSearch } from '@/components/live-search'
 import { searchCars, getDue } from '@/lib/data'
 import { getDay, todayMsk, apptCar, apptWho } from '@/lib/appts'
 import { dateRu } from '@/lib/format'
@@ -10,12 +11,10 @@ export default async function Home({ searchParams }: { searchParams: { q?: strin
     const q = searchParams.q ?? ''
     const [cars, due, today] = await Promise.all([searchCars(q), q ? Promise.resolve([]) : getDue(), q ? Promise.resolve([]) : getDay(todayMsk())])
     const waiting = today.filter((a) => a.status === 'planned')
+    const byPhone = q.replace(/\D/g, '').length >= 3 // ищут по цифрам — показываем телефон в строке
     return (
         <>
-            <form className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={20} />
-                <input name="q" defaultValue={q} placeholder="Номер, имя, телефон или марка" className="input pl-10 text-lg uppercase placeholder:normal-case" autoComplete="off" />
-            </form>
+            <LiveSearch initial={q} />
             {!q && waiting.length > 0 && (
                 <Link href="/calendar" className="card flex items-center justify-between gap-2 border-basil/50 bg-basil/10 p-4">
                     <span className="min-w-0">
@@ -44,7 +43,7 @@ export default async function Home({ searchParams }: { searchParams: { q?: strin
                                 <PlateBadge plate={c.plate} />
                                 <div className="min-w-0 flex-1">
                                     <div className="truncate font-bold">{[c.brand, c.model].filter(Boolean).join(' ') || 'Без марки'}</div>
-                                    <div className="truncate text-sm text-muted">{c.owner_name || 'Владелец не указан'}{c.last_visit ? ` · был ${dateRu(c.last_visit)}` : ''}</div>
+                                    <div className="truncate text-sm text-muted">{c.owner_name || 'Владелец не указан'}{byPhone && c.owner_phone ? ` · ${c.owner_phone}` : c.last_visit ? ` · был ${dateRu(c.last_visit)}` : ''}</div>
                                 </div>
                                 <ChevronRight className="shrink-0 text-muted" />
                             </Link>
