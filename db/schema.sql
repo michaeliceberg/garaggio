@@ -111,3 +111,6 @@ CREATE TABLE IF NOT EXISTS tg_relay (
     PRIMARY KEY (master_chat, master_msg_id)
 );
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS client_plate text NOT NULL DEFAULT ''; -- госномер из самозаписи
+-- владелец: где живёт (город, район) и чем занимается — чтобы мастер помнил клиента
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS owner_address text NOT NULL DEFAULT '';
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS owner_job text NOT NULL DEFAULT '';

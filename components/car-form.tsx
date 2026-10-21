@@ -51,6 +51,8 @@ export async function CarForm({ car, plate, owner, appt }: { car?: Car; plate?: 
             <div className="grid grid-cols-2 gap-3">
                 <Field name="owner_name" label="Имя" value={car?.owner_name ?? owner?.name} placeholder="Имя" />
                 <PhoneInput defaultValue={car?.owner_phone ?? owner?.phone} />
+                <Field name="owner_address" label="Где живёт" value={car?.owner_address} placeholder="Москва, Хамовники" className="col-span-2" />
+                <Field name="owner_job" label="Чем занимается" value={car?.owner_job} placeholder="Врач, таксист, свой бизнес…" className="col-span-2" />
             </div>
             </Section>
             <Section icon={<MessageSquare size={18} />} title="Заметки о машине" color="#9AA7B0">

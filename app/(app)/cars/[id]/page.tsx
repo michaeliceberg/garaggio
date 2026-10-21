@@ -29,11 +29,12 @@ export default async function CarPage({ params }: { params: { id: string } }) {
                     </div>
                     <Link href={`/cars/${car.id}/edit`} className="btn-ghost min-h-[44px] px-3" aria-label="Редактировать"><Pencil size={18} /></Link>
                 </div>
-                {(car.owner_name || car.owner_phone) && (
+                {(car.owner_name || car.owner_phone || car.owner_address || car.owner_job) && (
                     <div className="flex items-center justify-between gap-3 rounded-xl bg-bg p-3">
                         <div>
                             <div className="font-bold">{car.owner_name || 'Владелец'}</div>
                             <div className="text-sm text-muted">{car.owner_phone}</div>
+                            {(car.owner_address || car.owner_job) && <div className="mt-1 text-sm text-muted">{[car.owner_address && `📍 ${car.owner_address}`, car.owner_job && `💼 ${car.owner_job}`].filter(Boolean).join(' · ')}</div>}
                         </div>
                         {car.owner_phone && <a href={telHref(car.owner_phone)} className="btn-ghost min-h-[44px] px-4"><Phone size={18} />Позвонить</a>}
                     </div>

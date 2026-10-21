@@ -26,7 +26,8 @@ export async function saveCar(f: FormData) {
     const v = {
         plate, plate_norm: normPlate(plate), vin: normVin(str(f, 'vin')), brand: str(f, 'brand'), model: str(f, 'model'),
         year: int(f, 'year'), color: str(f, 'color'),
-        powertrain: ['ice', 'hybrid', 'ev'].includes(str(f, 'powertrain')) ? str(f, 'powertrain') : guessPowertrain(str(f, 'brand'), str(f, 'model')), owner_name: str(f, 'owner_name'), owner_phone: formatPhone(str(f, 'owner_phone')), notes: str(f, 'notes'),
+        powertrain: ['ice', 'hybrid', 'ev'].includes(str(f, 'powertrain')) ? str(f, 'powertrain') : guessPowertrain(str(f, 'brand'), str(f, 'model')), owner_name: str(f, 'owner_name'), owner_phone: formatPhone(str(f, 'owner_phone')),
+        owner_address: str(f, 'owner_address'), owner_job: str(f, 'owner_job'), notes: str(f, 'notes'),
     }
     let carId = id
     if (id) await sql`UPDATE cars SET ${sql(v)} WHERE id = ${id}`

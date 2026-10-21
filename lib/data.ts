@@ -4,7 +4,7 @@ import { normPlate, type Part, type Powertrain } from './format'
 
 export type Car = {
     id: number; plate: string; vin: string; brand: string; model: string; year: number | null; color: string
-    owner_name: string; owner_phone: string; notes: string; created_at: string; powertrain: Powertrain
+    owner_name: string; owner_phone: string; owner_address: string; owner_job: string; notes: string; created_at: string; powertrain: Powertrain
     tg_chat_id: string | null // bigint приходит строкой
 }
 export type Visit = {
@@ -26,6 +26,7 @@ export async function searchCars(q: string) {
         SELECT c.*, (SELECT max(visit_date) FROM visits v WHERE v.car_id = c.id) AS last_visit
         FROM cars c
         WHERE c.plate_norm LIKE ${'%' + n + '%'} OR lower(c.owner_name) LIKE ${like} OR lower(c.brand || ' ' || c.model) LIKE ${like}
+           OR lower(c.owner_address || ' ' || c.owner_job) LIKE ${like}
            OR (length(${digits}) >= 3 AND regexp_replace(c.owner_phone, '[^0-9]', '', 'g') LIKE ${'%' + digits + '%'})
         ORDER BY c.plate LIMIT 50`
 }
