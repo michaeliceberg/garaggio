@@ -14,11 +14,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return (
         <div className="mx-auto min-h-screen max-w-2xl pb-28">
             <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-bg/95 px-4 py-3 backdrop-blur">
-                <Link href="/" className="flex items-center">
+                <Link href="/" className="flex shrink-0 items-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/logo-small.webp" alt="Garaggio" className="h-12 w-auto rounded-lg" />
                 </Link>
-                <div className="flex items-center gap-4">
+                {/* слоган — тянется на всё место между логотипом и кнопками справа */}
+                <Link href="/" className="mx-3 flex h-12 min-w-0 flex-1 items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/slogan.webp" alt="perfecto pohyini" className="h-full w-full object-contain" />
+                </Link>
+                <div className="flex shrink-0 items-center gap-4">
                     {MONEY && <Link href="/money" className="flex items-center gap-1.5 text-sm font-semibold text-muted"><Wallet size={20} />Деньги</Link>}
                     <form action={logout}>
                         <button className="flex items-center gap-1 text-sm text-muted" aria-label="Выйти"><LogOut size={18} /></button>
