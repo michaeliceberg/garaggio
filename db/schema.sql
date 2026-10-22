@@ -114,3 +114,9 @@ ALTER TABLE appointments ADD COLUMN IF NOT EXISTS client_plate text NOT NULL DEF
 -- владелец: где живёт (город, район) и чем занимается — чтобы мастер помнил клиента
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS owner_address text NOT NULL DEFAULT '';
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS owner_job text NOT NULL DEFAULT '';
+
+-- масло двигателя (окошко в карточке машины): вязкость (можно несколько через запятую), объём в литрах, слив/откачка, примечание
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS oil_spec text NOT NULL DEFAULT '';
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS oil_volume text NOT NULL DEFAULT '';
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS oil_method text NOT NULL DEFAULT ''; -- '' | 'drain' (слив) | 'suck' (откачка)
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS oil_note text NOT NULL DEFAULT '';

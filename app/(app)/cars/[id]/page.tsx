@@ -11,6 +11,7 @@ import { templatesFor } from '@/lib/messages'
 import { TgInvite } from '@/components/tg-invite'
 import { MONEY } from '@/lib/features'
 import { ttsEnabled } from '@/lib/tts'
+import { oilLine } from '@/lib/format'
 
 // Карточка машины: данные + вся история визитов лентой (свежие сверху).
 export default async function CarPage({ params }: { params: { id: string } }) {
@@ -46,6 +47,7 @@ export default async function CarPage({ params }: { params: { id: string } }) {
                     </details>
                 )}
                 <TgInvite car={car} />
+                {oilLine(car) && <p className="rounded-xl bg-orange-400/10 p-3 text-sm"><b className="text-[#F09B38]">🛢 Масло:</b> {oilLine(car)}</p>}
                 {car.notes && <p className="whitespace-pre-wrap rounded-xl bg-bg p-3 text-sm">📝 {car.notes}</p>}
                 {next && (next.next_date || next.next_mileage) && (
                     <p className="rounded-xl bg-gold/10 p-3 text-sm font-semibold text-gold">

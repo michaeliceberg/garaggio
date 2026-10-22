@@ -89,3 +89,9 @@ export function formatPhone(s: string) {
     const r = d.slice(1, 11)
     return ['+7', r.slice(0, 3), r.slice(3, 6), r.slice(6, 8), r.slice(8, 10)].filter(Boolean).join(' ')
 }
+
+// Масло двигателя: «как меняем» и одна строка для карточки машины и шапки визита («5W-30, 5W-40 · 6,5 л · откачка · остаток 200 г»).
+export const OIL_METHOD_LABEL: Record<string, string> = { drain: 'слив', suck: 'откачка' }
+export function oilLine(c: { oil_spec?: string; oil_volume?: string; oil_method?: string; oil_note?: string }) {
+    return [c.oil_spec, c.oil_volume && `${c.oil_volume.replace('.', ',')} л`, c.oil_method && OIL_METHOD_LABEL[c.oil_method], c.oil_note].filter(Boolean).join(' · ')
+}

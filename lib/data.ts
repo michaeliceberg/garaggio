@@ -4,7 +4,7 @@ import { normPlate, type Part, type Powertrain } from './format'
 
 export type Car = {
     id: number; plate: string; vin: string; brand: string; model: string; year: number | null; color: string
-    owner_name: string; owner_phone: string; owner_address: string; owner_job: string; notes: string; created_at: string; powertrain: Powertrain
+    owner_name: string; owner_phone: string; owner_address: string; owner_job: string; notes: string; oil_spec: string; oil_volume: string; oil_method: string; oil_note: string; created_at: string; powertrain: Powertrain
     tg_chat_id: string | null // bigint приходит строкой
 }
 export type Visit = {

@@ -9,7 +9,8 @@ import { ModelInput } from './model-input'
 import { PlateInput } from './plate-input'
 import { getKnownModels } from '@/lib/data'
 import { Section } from './form-section'
-import { Car as CarIcon, User, MessageSquare } from 'lucide-react'
+import { Car as CarIcon, User, MessageSquare, Droplet } from 'lucide-react'
+import { OilFields } from './oil-fields'
 
 const Field = ({ name, label, value, placeholder, type = 'text', inputMode, className = '' }: {
     name: string; label: string; value?: string | number | null; placeholder?: string; type?: string; inputMode?: 'numeric' | 'tel' | 'text'; className?: string
@@ -55,6 +56,9 @@ export async function CarForm({ car, plate, owner, appt }: { car?: Car; plate?: 
                 <Field name="owner_address" label="Где живёт" value={car?.owner_address} placeholder="Москва, Хамовники" className="col-span-2" />
                 <Field name="owner_job" label="Чем занимается" value={car?.owner_job} placeholder="Врач, таксист, свой бизнес…" className="col-span-2" />
             </div>
+            </Section>
+            <Section icon={<Droplet size={18} />} title="Масло двигателя" color="#F09B38">
+                <OilFields spec={car?.oil_spec} volume={car?.oil_volume} method={car?.oil_method} note={car?.oil_note} />
             </Section>
             <Section icon={<MessageSquare size={18} />} title="Заметки о машине" color="#9AA7B0">
             <div>
