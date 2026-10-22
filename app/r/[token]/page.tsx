@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import { getCar, getPhotos, getVisitByToken } from '@/lib/data'
 import { dateRu, km, rub, partsTotal } from '@/lib/format'
 import { MONEY } from '@/lib/features'
-import { kindLabel } from '@/lib/photo-client'
 
 export const metadata: Metadata = { title: 'Отчёт о визите — Garaggio', robots: { index: false, follow: false } }
 
@@ -54,7 +53,6 @@ export default async function Report({ params }: { params: { token: string } }) 
                             <a key={p.id} href={`/r/${params.token}/photo/${p.id}`} target="_blank" rel="noreferrer" className="relative aspect-square overflow-hidden rounded-xl border border-line">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={`/r/${params.token}/photo/${p.id}`} alt="" loading="lazy" className="h-full w-full object-cover" />
-                                <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 text-xs">{kindLabel(p.kind)}</span>
                             </a>
                         ))}
                     </div>

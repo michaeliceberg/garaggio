@@ -198,7 +198,7 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId
                         <label className="label mb-0">Пробег, км</label>
                         <input inputMode="numeric" value={nextKm} onChange={(e) => { setNextTouched(true); setNextKm(e.target.value) }} className="input" placeholder="+10 000" />
                         <div className="flex flex-wrap gap-1.5">
-                            {[5000, 10000, 15000].map((k) => <button key={k} type="button" className={quick} disabled={!num(mileage)} onClick={() => setNextPlus(k)}>+{k / 1000} т</button>)}
+                            {[5000, 7500, 10000].map((k) => <button key={k} type="button" className={quick} disabled={!num(mileage)} onClick={() => setNextPlus(k)}>+{String(k / 1000).replace('.', ',')} т</button>)}
                         </div>
                     </div>
                 </div>

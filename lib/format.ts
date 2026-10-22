@@ -29,8 +29,10 @@ export const normVin = (s: string) =>
         .replace(/I/g, '1').replace(/[OQ]/g, '0').replace(/[^A-Z0-9]/g, '').slice(0, 17)
 
 // Тип машины: угадываем по марке/модели, мастер может поменять в карточке.
-export type Powertrain = 'ice' | 'hybrid' | 'ev'
-export const POWERTRAIN_LABEL: Record<Powertrain, string> = { ice: 'ДВС', hybrid: 'Гибрид', ev: 'Электро' }
+// ice — бензин (так исторически хранится в базе), diesel — дизель; для обоих одинаковый набор работ
+export type Powertrain = 'ice' | 'diesel' | 'hybrid' | 'ev'
+export const POWERTRAIN_LABEL: Record<Powertrain, string> = { ice: 'Бензин', diesel: 'Дизель', hybrid: 'Гибрид', ev: 'Электро' }
+export const POWERTRAINS: Powertrain[] = ['ice', 'diesel', 'hybrid', 'ev']
 const EV_BRANDS = ['zeekr', 'tesla', 'voyah', 'avatr', 'xpeng', 'nio', 'leapmotor', 'polestar', 'neta', 'aito', 'denza', 'evolute', 'moskvich 3e', 'атом', 'atom']
 const EV_MODELS = ['e-tron', 'taycan', 'eqs', 'eqe', 'eqc', 'eqa', 'eqb', 'id.3', 'id.4', 'id.6', 'ix3', 'ix', 'i3', 'i4', 'i7', 'leaf', 'ioniq 5', 'ioniq 6', 'ev6', 'ev9', 'han ev', 'seal', 'dolphin']
 const HYBRID_HINTS = ['li auto', 'lixiang', 'li ', 'hybrid', 'гибрид', 'prius', 'dm-i', 'phev', 'hev']

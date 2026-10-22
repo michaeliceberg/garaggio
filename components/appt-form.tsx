@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, X, UserPlus, AlertTriangle, User, Clock, Wrench } from 'lucide-react'
 import { saveAppt } from '@/app/actions'
-import { normPlate, workPresets, POWERTRAIN_LABEL, type Powertrain } from '@/lib/format'
+import { normPlate, workPresets, POWERTRAIN_LABEL, POWERTRAINS, type Powertrain } from '@/lib/format'
 import { PlateBadge } from './plate'
 import { PhoneInput } from './phone-input'
 import { Section } from './form-section'
@@ -141,7 +141,7 @@ export function ApptForm({ cars, initial }: { cars: CarLite[]; initial: Initial 
             <Section icon={<Wrench size={18} />} title="Что делать" color="#8DB255">
                 {!car && (
                     <div className="flex gap-1.5">
-                        {(['ice', 'hybrid', 'ev'] as const).map((p) => (
+                        {POWERTRAINS.map((p) => (
                             <button key={p} type="button" onClick={() => setPtNew(p)}
                                 className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${ptNew === p ? 'border-gold bg-gold/15 text-gold' : 'border-line text-muted'}`}>{POWERTRAIN_LABEL[p]}</button>
                         ))}

@@ -6,13 +6,13 @@ import path from 'node:path'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
-import { endSession, requireAuth } from '@/lib/auth'
+import { checkPassword, endSession, requireAuth } from '@/lib/auth'
 import { parseVoiceText, type VoiceParsed } from '@/lib/ai'
 import { notifyMasters, removeMaster, sendToClient, sendVoiceToClient } from '@/lib/tg'
 import { synthesize } from '@/lib/tts'
 import { apptCar, apptWho, conflicts, endTime } from '@/lib/appts'
 import { apptText } from '@/lib/messages'
-import { formatPhone, guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
+import { POWERTRAINS, formatPhone, guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
 const int = (f: FormData, k: string) => { const v = str(f, k).replace(/\s/g, ''); return v === '' ? null : Math.round(Number(v)) || null }
@@ -26,7 +26,7 @@ export async function saveCar(f: FormData) {
     const v = {
         plate, plate_norm: normPlate(plate), vin: normVin(str(f, 'vin')), brand: str(f, 'brand'), model: str(f, 'model'),
         year: int(f, 'year'), color: str(f, 'color'),
-        powertrain: ['ice', 'hybrid', 'ev'].includes(str(f, 'powertrain')) ? str(f, 'powertrain') : guessPowertrain(str(f, 'brand'), str(f, 'model')), owner_name: str(f, 'owner_name'), owner_phone: formatPhone(str(f, 'owner_phone')),
+        powertrain: (POWERTRAINS as string[]).includes(str(f, 'powertrain')) ? str(f, 'powertrain') : guessPowertrain(str(f, 'brand'), str(f, 'model')), owner_name: str(f, 'owner_name'), owner_phone: formatPhone(str(f, 'owner_phone')),
         owner_address: str(f, 'owner_address'), owner_job: str(f, 'owner_job'), notes: str(f, 'notes'),
     }
     let carId = id
@@ -37,8 +37,11 @@ export async function saveCar(f: FormData) {
     revalidatePath('/')
     redirect(`/cars/${carId}`)
 }
-export async function deleteCar(f: FormData) {
+// Удаление машины и визита — только с паролем мастера (защита от случайного нажатия). Возвращает текст ошибки.
+const WRONG_PW = 'Неверный пароль'
+export async function deleteCar(_prev: string | null, f: FormData): Promise<string | null> {
     requireAuth()
+    if (!checkPassword(str(f, 'password'))) return WRONG_PW
     const id = int(f, 'id')
     if (id) {
         const files = await sql<{ file: string }[]>`SELECT p.file FROM photos p JOIN visits v ON v.id = p.visit_id WHERE v.car_id = ${id}`
@@ -98,8 +101,9 @@ export async function setPaid(visitId: number, paid: boolean) {
     const [v] = await sql<{ car_id: number }[]>`UPDATE visits SET paid = ${paid} WHERE id = ${visitId} RETURNING car_id`
     revalidatePath('/money'); if (v) revalidatePath(`/cars/${v.car_id}`); revalidatePath(`/visits/${visitId}`)
 }
-export async function deleteVisit(f: FormData) {
+export async function deleteVisit(_prev: string | null, f: FormData): Promise<string | null> {
     requireAuth()
+    if (!checkPassword(str(f, 'password'))) return WRONG_PW
     const id = int(f, 'id'), carId = int(f, 'car_id')
     if (id) {
         const files = await sql<{ file: string }[]>`SELECT file FROM photos WHERE visit_id = ${id}`

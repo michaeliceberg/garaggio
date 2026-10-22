@@ -38,7 +38,8 @@ export async function CarForm({ car, plate, owner, appt }: { car?: Car; plate?: 
                     <label className="label" htmlFor="powertrain">Тип</label>
                     <select id="powertrain" name="powertrain" defaultValue={car?.powertrain ?? ''} className="input">
                         {!car && <option value="">По марке</option>}
-                        <option value="ice">ДВС</option>
+                        <option value="ice">Бензин</option>
+                        <option value="diesel">Дизель</option>
                         <option value="hybrid">Гибрид</option>
                         <option value="ev">Электро</option>
                     </select>

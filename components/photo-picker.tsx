@@ -1,14 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Camera, Images, X } from 'lucide-react'
-import { PHOTO_KINDS, type PhotoKind, kindLabel } from '@/lib/photo-client'
+import type { PhotoKind } from '@/lib/photo-client'
 
 export type PendingPhoto = { key: string; file: File; kind: PhotoKind; url: string }
 
-// Выбор фото: сначала тип («До», «После», …), потом «Снять» (сразу камера) или «Из галереи».
+// Выбор фото: «Снять» (сразу камера) или «Из галереи». Все фото в одной куче, без разделения на «до/после».
 export function PhotoPicker({ photos, onChange }: { photos: PendingPhoto[]; onChange: (p: PendingPhoto[]) => void }) {
-    const [kind, setKind] = useState<PhotoKind>('before')
+    const kind: PhotoKind = 'other'
     const cam = useRef<HTMLInputElement>(null)
     const gal = useRef<HTMLInputElement>(null)
     useEffect(() => () => photos.forEach((p) => URL.revokeObjectURL(p.url)), []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -19,14 +19,6 @@ export function PhotoPicker({ photos, onChange }: { photos: PendingPhoto[]; onCh
     }
     return (
         <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap gap-2">
-                {PHOTO_KINDS.map((k) => (
-                    <button key={k.id} type="button" onClick={() => setKind(k.id)}
-                        className={`rounded-full border px-3 py-2 text-sm font-semibold ${kind === k.id ? 'border-gold bg-gold/15 text-gold' : 'border-line text-muted'}`}>
-                        {k.label}
-                    </button>
-                ))}
-            </div>
             <div className="grid grid-cols-2 gap-2">
                 <button type="button" className="btn-ghost" onClick={() => cam.current?.click()}><Camera size={20} />Снять</button>
                 <button type="button" className="btn-ghost" onClick={() => gal.current?.click()}><Images size={20} />Из галереи</button>
@@ -39,7 +31,6 @@ export function PhotoPicker({ photos, onChange }: { photos: PendingPhoto[]; onCh
                         <div key={p.key} className="relative aspect-square overflow-hidden rounded-xl border border-line">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={p.url} alt="" className="h-full w-full object-cover" />
-                            <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 text-xs">{kindLabel(p.kind)}</span>
                             <button type="button" aria-label="Убрать" onClick={() => { URL.revokeObjectURL(p.url); onChange(photos.filter((x) => x.key !== p.key)) }}
                                 className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/70"><X size={16} /></button>
                         </div>
