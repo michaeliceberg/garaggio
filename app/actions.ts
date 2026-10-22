@@ -213,3 +213,19 @@ export async function tgRemoveMaster(chatId: string) {
     if (/^-?\d+$/.test(chatId)) await removeMaster(chatId)
     revalidatePath('/inbox')
 }
+
+// Страница владельца: секретная ссылка одна на машину (повторный вызов — та же). У визитов без ссылки на отчёт она появится сама.
+export async function ensureOwnerToken(carId: number) {
+    requireAuth()
+    const [c] = await sql<{ owner_token: string | null }[]>`SELECT owner_token FROM cars WHERE id = ${carId}`
+    if (!c) throw new Error('no car')
+    if (c.owner_token) return c.owner_token
+    const token = crypto.randomBytes(12).toString('base64url')
+    await sql`UPDATE cars SET owner_token = ${token} WHERE id = ${carId}`
+    return token
+}
+export async function setWishDone(id: number, done: boolean) {
+    requireAuth()
+    const [w] = await sql<{ car_id: number }[]>`UPDATE car_wishes SET done = ${done} WHERE id = ${id} RETURNING car_id`
+    if (w) revalidatePath(`/cars/${w.car_id}`)
+}

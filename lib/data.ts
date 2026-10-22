@@ -6,6 +6,7 @@ export type Car = {
     id: number; plate: string; vin: string; brand: string; model: string; year: number | null; color: string
     owner_name: string; owner_phone: string; owner_address: string; owner_job: string; notes: string; oil_spec: string; oil_volume: string; oil_method: string; oil_note: string; created_at: string; powertrain: Powertrain
     tg_chat_id: string | null // bigint приходит строкой
+    owner_token: string | null
 }
 export type Visit = {
     id: number; car_id: number; visit_date: string; mileage: number | null; works: string; parts: Part[]; labor_cost: number; paid: boolean
@@ -113,4 +114,15 @@ export async function getDue(withinDays = 14) {
 export async function getKnownModels() {
     return sql<{ brand: string; model: string }[]>`
         SELECT brand, model FROM cars WHERE brand <> '' AND model <> '' GROUP BY brand, model ORDER BY count(*) DESC, model LIMIT 300`
+}
+
+// Страница владельца: машина по секретной ссылке и пожелания к следующему ТО.
+export type Wish = { id: number; car_id: number; text: string; done: boolean; created_at: string }
+export async function getCarByOwnerToken(token: string) {
+    if (!/^[\w-]{10,40}$/.test(token)) return null
+    const [car] = await sql<Car[]>`SELECT * FROM cars WHERE owner_token = ${token}`
+    return car ?? null
+}
+export async function getWishes(carId: number, openOnly = false) {
+    return sql<Wish[]>`SELECT * FROM car_wishes WHERE car_id = ${carId} ${openOnly ? sql`AND NOT done` : sql``} ORDER BY created_at DESC LIMIT 30`
 }

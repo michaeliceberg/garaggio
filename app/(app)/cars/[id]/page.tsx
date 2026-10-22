@@ -2,7 +2,9 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Phone, Pencil, Plus, Camera, AlertTriangle, CalendarPlus } from 'lucide-react'
 import { todayMsk, upcomingForCar } from '@/lib/appts'
-import { getCar, getVisits } from '@/lib/data'
+import { getCar, getVisits, getWishes } from '@/lib/data'
+import { CarWishes } from '@/components/car-wishes'
+import { ShareOwnerPage } from '@/components/share-owner-page'
 import { colorHex } from '@/lib/car-dicts'
 import { dateRu, km, rub, partsTotal, telHref, POWERTRAIN_LABEL } from '@/lib/format'
 import { PlateBadge } from '@/components/plate'
@@ -17,7 +19,7 @@ import { oilLine } from '@/lib/format'
 export default async function CarPage({ params }: { params: { id: string } }) {
     const car = await getCar(Number(params.id))
     if (!car) notFound()
-    const [visits, appts] = await Promise.all([getVisits(car.id), upcomingForCar(car.id)])
+    const [visits, appts, wishes] = await Promise.all([getVisits(car.id), upcomingForCar(car.id), getWishes(car.id)])
     const next = visits[0]
     return (
         <>
@@ -46,7 +48,10 @@ export default async function CarPage({ params }: { params: { id: string } }) {
                         <div className="fold-body"><MessageButtons phone={car.owner_phone} templates={templatesFor(car, next?.next_date)} tgCarId={car.tg_chat_id ? car.id : null} voice={ttsEnabled()} /></div>
                     </details>
                 )}
+                <ShareOwnerPage carId={car.id} token={car.owner_token} phone={car.owner_phone} hello={car.owner_name ? `Чао, ${car.owner_name.split(' ')[0]}!` : 'Чао!'}
+                    car={[car.brand, car.model].filter(Boolean).join(' ') || 'машины'} tgCarId={car.tg_chat_id ? car.id : null} voice={ttsEnabled()} />
                 <TgInvite car={car} />
+                <CarWishes wishes={wishes.map((w) => ({ ...w, created_at: String(w.created_at) }))} />
                 {oilLine(car) && <p className="rounded-xl bg-orange-400/10 p-3 text-sm"><b className="text-[#F09B38]">🛢 Масло:</b> {oilLine(car)}</p>}
                 {car.notes && <p className="whitespace-pre-wrap rounded-xl bg-bg p-3 text-sm">📝 {car.notes}</p>}
                 {next && (next.next_date || next.next_mileage) && (

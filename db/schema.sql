@@ -120,3 +120,14 @@ ALTER TABLE cars ADD COLUMN IF NOT EXISTS oil_spec text NOT NULL DEFAULT '';
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS oil_volume text NOT NULL DEFAULT '';
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS oil_method text NOT NULL DEFAULT ''; -- '' | 'drain' (слив) | 'suck' (откачка)
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS oil_note text NOT NULL DEFAULT '';
+
+-- Страница владельца машины (/c/<token>): вся история ТО + пожелания к следующему ТО. Ссылка секретная, без входа.
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS owner_token text UNIQUE;
+CREATE TABLE IF NOT EXISTS car_wishes (
+    id         serial PRIMARY KEY,
+    car_id     int NOT NULL REFERENCES cars(id) ON DELETE CASCADE,
+    text       text NOT NULL,
+    done       boolean NOT NULL DEFAULT false, -- мастер отметил «учтено»
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS car_wishes_car_idx ON car_wishes (car_id, created_at DESC);
