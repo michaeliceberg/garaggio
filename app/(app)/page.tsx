@@ -2,19 +2,25 @@ import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { LiveSearch } from '@/components/live-search'
 import { searchCars, getDue } from '@/lib/data'
-import { getDay, todayMsk, apptCar, apptWho, pendingAppts } from '@/lib/appts'
+import { getDay, todayMsk, apptCar, apptWho, pendingAppts, ordersToDo } from '@/lib/appts'
 import { dateRu } from '@/lib/format'
 import { PlateBadge } from '@/components/plate'
 
 // Главная: поиск по номеру / имени / телефону / марке и список машин (свежие визиты — сверху).
 export default async function Home({ searchParams }: { searchParams: { q?: string } }) {
     const q = searchParams.q ?? ''
-    const [cars, due, today, pending] = await Promise.all([searchCars(q), q ? Promise.resolve([]) : getDue(), q ? Promise.resolve([]) : getDay(todayMsk()), q ? Promise.resolve([]) : pendingAppts()])
+    const [cars, due, today, pending, toOrder] = await Promise.all([searchCars(q), q ? Promise.resolve([]) : getDue(), q ? Promise.resolve([]) : getDay(todayMsk()), q ? Promise.resolve([]) : pendingAppts(), q ? Promise.resolve(0) : ordersToDo()])
     const waiting = today.filter((a) => a.status === 'planned')
     const byPhone = q.replace(/\D/g, '').length >= 3 // ищут по цифрам — показываем телефон в строке
     return (
         <>
             <LiveSearch initial={q} />
+            {!q && toOrder > 0 && (
+                <Link href="/order?days=3" className="card flex items-center justify-between gap-2 p-4">
+                    <span><b>🛒 Что заказать к ТО</b><span className="block text-sm text-muted">Записей на 3 дня без заказанных деталей: {toOrder}</span></span>
+                    <ChevronRight size={20} className="text-muted" />
+                </Link>
+            )}
             {!q && pending.length > 0 && (
                 <Link href={`/calendar?d=${pending[0].day}`} className="card flex items-center justify-between gap-2 border-gold/60 bg-gold/10 p-4">
                     <span className="min-w-0">

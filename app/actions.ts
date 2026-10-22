@@ -229,3 +229,10 @@ export async function setWishDone(id: number, done: boolean) {
     const [w] = await sql<{ car_id: number }[]>`UPDATE car_wishes SET done = ${done} WHERE id = ${id} RETURNING car_id`
     if (w) revalidatePath(`/cars/${w.car_id}`)
 }
+
+// «Что заказать к ТО»: отметка «детали заказаны» у записи
+export async function setPartsOrdered(apptId: number, ordered: boolean) {
+    requireAuth()
+    await sql`UPDATE appointments SET parts_ordered = ${ordered} WHERE id = ${apptId}`
+    revalidatePath('/order'); revalidatePath('/calendar')
+}

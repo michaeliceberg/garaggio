@@ -43,6 +43,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: { d
         <>
             <div className="flex items-center justify-between gap-2">
                 <h1 className="text-2xl font-black">Запись</h1>
+                <Link href="/order" className="rounded-full border border-gold/50 px-3 py-1 text-sm font-semibold text-gold">🛒 Что заказать</Link>
                 <span className="text-sm font-semibold text-muted first-letter:uppercase">{fmt(day, { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, '')}</span>
             </div>
             <div className="flex items-center gap-1">

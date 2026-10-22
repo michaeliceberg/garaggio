@@ -131,3 +131,6 @@ CREATE TABLE IF NOT EXISTS car_wishes (
     created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS car_wishes_car_idx ON car_wishes (car_id, created_at DESC);
+
+-- «Что заказать к ТО»: мастер отметил, что детали к этой записи уже заказаны
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS parts_ordered boolean NOT NULL DEFAULT false;

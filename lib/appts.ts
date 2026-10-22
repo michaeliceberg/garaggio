@@ -92,3 +92,12 @@ export const SELF_WORKS = [
     { id: 'other', label: 'Другое', text: '', minutes: 60 },
 ] as const
 export const SELF_DAYS_AHEAD = 14
+
+// Сколько записей с машинами на ближайшие 3 дня ещё без отметки «детали заказаны» (для плашки на главной)
+export async function ordersToDo() {
+    const to = new Date(todayMsk() + 'T12:00:00Z'); to.setUTCDate(to.getUTCDate() + 3)
+    const [{ n }] = await sql<{ n: number }[]>`
+        SELECT count(*)::int AS n FROM appointments WHERE car_id IS NOT NULL AND status IN ('planned', 'pending') AND NOT parts_ordered
+          AND day BETWEEN ${todayMsk()} AND ${to.toISOString().slice(0, 10)}`
+    return n
+}
