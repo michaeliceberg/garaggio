@@ -49,7 +49,7 @@ export default async function OwnerPage({ params }: { params: { token: string } 
                         {wishes.map((w) => (
                             <li key={w.id} className="rounded-xl bg-bg p-3 text-sm">
                                 <div className="flex items-center justify-between gap-2 text-xs text-muted">
-                                    <span>{dateRu(w.created_at.toString().slice(0, 10))}</span>
+                                    <span>{new Date(w.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })}</span>
                                     {w.done ? <span className="flex items-center gap-1 font-bold text-olive"><Check size={14} />Маэстро учёл</span> : <span>ждёт Маэстро</span>}
                                 </div>
                                 <p className="mt-1 whitespace-pre-wrap">{w.text}</p>
