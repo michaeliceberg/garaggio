@@ -18,7 +18,11 @@ export async function addWish(token: string, text: string, website?: string) {
     revalidatePath(`/c/${token}`); revalidatePath(`/cars/${car.id}`)
     if (tgEnabled()) {
         const who = [car.owner_name, [car.brand, car.model].filter(Boolean).join(' '), car.plate].filter(Boolean).join(' · ')
-        await notifyMasters(`📝 Пожелание к следующему ТО\n${who}\n\n${t}\n\nКарточка: https://garaggio.ru/cars/${car.id}`).catch(() => {})
+        // клиент подписан на бота — пожелание ложится и в его переписку в «Ящике», а ответ мастера на копию в Telegram уйдёт клиенту
+        if (car.tg_chat_id) await sql`INSERT INTO tg_messages (chat_id, out, text) VALUES (${car.tg_chat_id}, false, ${'📝 Пожелание к следующему ТО:\n' + t})`
+        await notifyMasters(`📝 Пожелание к следующему ТО\n${who}\n\n${t}\n\nКарточка: https://garaggio.ru/cars/${car.id}${car.tg_chat_id ? '\n↩️ Ответьте на это сообщение — ответ уйдёт клиенту' : ''}`,
+            car.tg_chat_id ? { clientChat: car.tg_chat_id } : {}).catch(() => {})
     }
+    revalidatePath('/inbox')
     return { ok: true }
 }

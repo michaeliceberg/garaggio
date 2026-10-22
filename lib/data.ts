@@ -126,3 +126,10 @@ export async function getCarByOwnerToken(token: string) {
 export async function getWishes(carId: number, openOnly = false) {
     return sql<Wish[]>`SELECT * FROM car_wishes WHERE car_id = ${carId} ${openOnly ? sql`AND NOT done` : sql``} ORDER BY created_at DESC LIMIT 30`
 }
+
+// Все неучтённые пожелания (для «Ящика»): с машиной, чтобы перейти в карточку.
+export async function getOpenWishes() {
+    return sql<(Wish & { brand: string; model: string; plate: string; owner_name: string })[]>`
+        SELECT w.*, c.brand, c.model, c.plate, c.owner_name FROM car_wishes w JOIN cars c ON c.id = w.car_id
+        WHERE NOT w.done ORDER BY w.created_at DESC LIMIT 50`
+}
