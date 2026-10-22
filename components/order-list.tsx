@@ -6,7 +6,6 @@ import { Copy, Share2, Check, PackageCheck } from 'lucide-react'
 import type { OrderCard } from '@/lib/order'
 import { setPartsOrdered } from '@/app/actions'
 import { PlateBadge } from './plate'
-import { rub } from '@/lib/format'
 
 const dayRu = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('ru-RU', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'long' })
 const SOURCE = { car: '', other: 'как у другой машины — проверить', none: 'раньше не записывали' }
@@ -59,7 +58,7 @@ export function OrderList({ cards }: { cards: OrderCard[] }) {
                                         <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${checked.has(i.key) ? 'border-basil bg-basil text-white' : 'border-line'}`}>{checked.has(i.key) && <Check size={14} />}</span>
                                         <span className="min-w-0 flex-1">
                                             <span className={`block ${i.source === 'none' ? 'text-gold' : ''}`}>{i.name}</span>
-                                            <span className="block text-xs text-muted">{[i.article, i.price ? rub(i.price) : '', SOURCE[i.source]].filter(Boolean).join(' · ')}</span>
+                                            <span className="block text-xs text-muted">{[i.article, SOURCE[i.source]].filter(Boolean).join(' · ')}</span>
                                         </span>
                                     </button>
                                 </li>
