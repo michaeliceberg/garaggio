@@ -67,6 +67,8 @@ export async function saveVisit(input: {
     }
     if (input.id) { await sql`UPDATE visits SET ${sql(v)} WHERE id = ${input.id}`; revalidatePath(`/cars/${input.car_id}`); return input.id }
     const [{ id }] = await sql<{ id: number }[]>`INSERT INTO visits ${sql(v)} RETURNING id`
+    // пожелания владельца показывались в шапке нового визита — после сохранения считаем их учтёнными (клиент видит «Маэстро учёл»)
+    await sql`UPDATE car_wishes SET done = true WHERE car_id = ${input.car_id} AND NOT done`
     if (input.appt_id) {
         await sql`UPDATE appointments SET status = 'done', visit_id = ${id}, car_id = ${input.car_id} WHERE id = ${input.appt_id}`
         revalidatePath('/calendar')

@@ -11,7 +11,7 @@ export default async function NewVisit({ params, searchParams }: { params: { id:
     const fromAppt = appt?.car_id === car.id && appt.status === 'planned' ? appt : null // визит начат из записи — подставим, что собирались делать
     return (
         <>
-            <VisitHeader car={car} title="Новый визит" wishes={wishes} />
+            <VisitHeader car={car} title="Новый визит" wishes={wishes} prev={last ? { date: last.visit_date, text: last.recommendations, declined: last.declined } : null} />
             <VisitForm carId={car.id} powertrain={car.powertrain} lastMileage={last?.mileage} known={known} apptId={fromAppt?.id} initialWorks={fromAppt?.work} />
         </>
     )
