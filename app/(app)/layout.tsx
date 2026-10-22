@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 {/* слоган — тянется на всё место между логотипом и кнопками справа */}
                 <Link href="/" className="relative mx-2 flex h-14 min-w-0 flex-1 items-center justify-center">
                     {/* косые штрихи в стиле слогана — заполняют всё место по бокам; края плавно гаснут */}
-                    <span aria-hidden className="absolute inset-0 bg-[url('/slogan-streaks.svg')] bg-cover bg-center [mask-image:linear-gradient(90deg,transparent,#000_12%,#000_88%,transparent)]" />
+                    <span aria-hidden className="absolute inset-0 bg-[url('/slogan-streaks.svg')] bg-cover bg-center [mask-image:linear-gradient(90deg,transparent,#000_6%,#000_94%,transparent)]" />
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/slogan.webp" alt="perfecto pohyini" className="relative h-full w-full object-contain" />
                 </Link>
