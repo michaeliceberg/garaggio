@@ -3,11 +3,17 @@ import { sql } from './db'
 import { getCar, getKnownParts, getWishes, type Car } from './data'
 import { oilLine, workPresets, type WorkPreset } from './format'
 import { todayMsk, type Appt } from './appts'
+import { getStock } from './stock'
+import { matchStock, partQty, qtyText, type StockItem } from './stock-match'
 
 // «Что заказать к ТО»: по записям в календаре на ближайшие дни собираем, какие детали и масло нужны каждой машине.
 // Откуда берём: работы из записи; если записано «ТО»/«масло» или ничего — работы прошлого ТО этой машины.
 // Работа → типовая работа (кнопки визита) → деталь, которую ставили этой машине раньше (артикул, цена), иначе другой машине.
-export type OrderItem = { key: string; work: string; name: string; article: string; price: number; source: 'car' | 'other' | 'none'; oil?: boolean }
+export type OrderItem = {
+    key: string; work: string; name: string; article: string; price: number; source: 'car' | 'other' | 'none'; oil?: boolean
+    // склад: что подходит из остатков и сколько нужно на эту машину (масло — литры по объёму в карточке)
+    stockId?: number; stockText?: string; need?: number; oilSpec?: string
+}
 export type OrderCard = {
     appt: { id: number; day: string; start_time: string; work: string; parts_ordered: boolean; status: string }
     car: Pick<Car, 'id' | 'plate' | 'brand' | 'model' | 'owner_name'>
@@ -34,6 +40,7 @@ export async function buildOrders(days = 7): Promise<OrderCard[]> {
         FROM appointments WHERE car_id IS NOT NULL AND status IN ('planned', 'pending') AND day BETWEEN ${today} AND ${to.toISOString().slice(0, 10)}
         ORDER BY day, start_time`
     const cards: OrderCard[] = []
+    const stock = appts.length ? await getStock() : []
     for (const a of appts) {
         const car = await getCar(a.car_id!)
         if (!car) continue
@@ -66,12 +73,14 @@ export async function buildOrders(days = 7): Promise<OrderCard[]> {
             const found = mine ?? other
             const oil = /двигател/.test(text) && /масл/i.test(text)
             const oilInfo = oil ? oilLine({ oil_spec: car.oil_spec, oil_volume: car.oil_volume }) : ''
-            items.push({
+            const item: OrderItem = {
                 key: `${a.id}-${p.label}`, work: p.label, oil,
                 name: oil && oilInfo ? `Масло ${oilInfo}${mine ? ` (${mine.name})` : ''}` : found?.name ?? `${p.label}: подобрать`,
                 article: (oil && !mine ? '' : found?.article) ?? '', price: (oil && !mine ? 0 : found?.price) ?? 0,
                 source: mine ? 'car' : oil && oilInfo ? 'car' : other ? 'other' : 'none',
-            })
+            }
+            withStock(item, stock, oil ? car : null, found ?? null)
+            items.push(item)
         }
         cards.push({
             appt: { id: a.id, day: a.day, start_time: a.start_time, work: a.work, parts_ordered: a.parts_ordered, status: a.status },
@@ -80,4 +89,19 @@ export async function buildOrders(days = 7): Promise<OrderCard[]> {
         })
     }
     return cards
+}
+
+// Подбираем позицию склада: масло — та, что ставили этой машине, иначе любое масло подходящей вязкости (где больше осталось);
+// фильтры и прочее — по прошлой детали (артикул/название).
+function withStock(item: OrderItem, stock: StockItem[], oilCar: Pick<Car, 'oil_spec' | 'oil_volume'> | null, found: { name: string; article?: string } | null) {
+    if (!stock.length) return
+    let s: StockItem | null = found ? matchStock(found, stock) : null
+    if (oilCar) {
+        const specs = oilCar.oil_spec.split(',').map((x) => x.trim().toUpperCase()).filter(Boolean)
+        if (s && (s.kind !== 'oil' || (specs.length && !specs.includes(s.spec.toUpperCase())))) s = null
+        if (!s && specs.length) s = stock.filter((i) => i.kind === 'oil' && specs.includes(i.spec.toUpperCase())).sort((x, y) => y.qty - x.qty)[0] ?? null
+        item.oilSpec = s?.spec || specs[0]
+        item.need = partQty({ name: '' }, { kind: 'oil' }, oilCar.oil_volume) ?? undefined
+    } else if (s) item.need = 1
+    if (s) { item.stockId = s.id; item.stockText = qtyText(s) }
 }

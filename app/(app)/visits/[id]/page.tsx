@@ -12,11 +12,13 @@ import { ttsEnabled } from '@/lib/tts'
 import { ConfirmButton } from '@/components/confirm-button'
 import { PasswordDelete } from '@/components/password-delete'
 import { deletePhoto, deleteVisit } from '@/app/actions'
+import { getVisitMoves } from '@/lib/stock'
+import { fmtQty, itemLabel, unitOf } from '@/lib/stock-match'
 
 export default async function VisitPage({ params }: { params: { id: string } }) {
     const visit = await getVisit(Number(params.id))
     if (!visit) notFound()
-    const [car, photos] = await Promise.all([getCar(visit.car_id), getPhotos(visit.id)])
+    const [car, photos, moves] = await Promise.all([getCar(visit.car_id), getPhotos(visit.id), getVisitMoves(visit.id)])
     const partsSum = partsTotal(visit.parts)
     return (
         <>
@@ -44,6 +46,11 @@ export default async function VisitPage({ params }: { params: { id: string } }) 
                             ))}
                         </tbody>
                     </table>
+                )}
+                {moves.length > 0 && (
+                    <Link href="/stock" className="rounded-xl bg-olive/10 p-3 text-sm">
+                        <b className="text-olive">📦 Списано со склада:</b> {moves.map((m) => `${itemLabel(m)} — ${fmtQty(-m.delta)} ${unitOf(m.kind)}`).join('; ')}
+                    </Link>
                 )}
                 {MONEY && <>
                     <div className="flex justify-between rounded-xl bg-bg p-3 text-sm">

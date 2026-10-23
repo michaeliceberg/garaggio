@@ -59,6 +59,7 @@ export function OrderList({ cards }: { cards: OrderCard[] }) {
                                         <span className="min-w-0 flex-1">
                                             <span className={`block ${i.source === 'none' ? 'text-gold' : ''}`}>{i.name}</span>
                                             <span className="block text-xs text-muted">{[i.article, SOURCE[i.source]].filter(Boolean).join(' · ')}</span>
+                                            {i.stockText && <span className={`block text-xs font-semibold ${i.need && parseFloat(i.stockText.replace(',', '.')) < i.need ? 'text-tomato' : 'text-olive'}`}>📦 На складе {i.stockText}{i.need ? ` · нужно ${String(i.need).replace('.', ',')}` : ''}</span>}
                                         </span>
                                     </button>
                                 </li>

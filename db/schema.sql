@@ -137,3 +137,27 @@ ALTER TABLE appointments ADD COLUMN IF NOT EXISTS parts_ordered boolean NOT NULL
 
 -- фото машины (аватарка в списке и на карточке): путь файла в UPLOAD_DIR, '' — нет фото
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS photo text NOT NULL DEFAULT '';
+
+-- Склад (масло и фильтры). Остаток хранится в stock_items.qty, каждое изменение — строка в stock_moves:
+-- in (пришло), count (пересчёт: разница), visit (списано деталью визита, visit_id), start (первый остаток).
+-- Масло — в литрах (spec = вязкость), фильтры — в штуках (spec = масляный/воздушный/салонный/топливный).
+CREATE TABLE IF NOT EXISTS stock_items (
+    id         serial PRIMARY KEY,
+    kind       text NOT NULL DEFAULT 'oil', -- oil | filter
+    name       text NOT NULL DEFAULT '',    -- производитель и линейка / модель фильтра: «Shell Helix Ultra», «Mann W 712/75»
+    spec       text NOT NULL DEFAULT '',
+    article    text NOT NULL DEFAULT '',
+    qty        numeric(10,2) NOT NULL DEFAULT 0,
+    min_qty    numeric(10,2) NOT NULL DEFAULT 0, -- меньше — «осталось мало»
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS stock_moves (
+    id         serial PRIMARY KEY,
+    item_id    int NOT NULL REFERENCES stock_items(id) ON DELETE CASCADE,
+    delta      numeric(10,2) NOT NULL,
+    reason     text NOT NULL DEFAULT 'in',
+    visit_id   int REFERENCES visits(id) ON DELETE SET NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS stock_moves_item_idx ON stock_moves (item_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS stock_moves_visit_idx ON stock_moves (visit_id);

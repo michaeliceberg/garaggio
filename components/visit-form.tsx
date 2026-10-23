@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, CalendarDays, CalendarClock, Wrench, Camera, MessageSquare } from 'lucide-react'
+import { Plus, Trash2, CalendarDays, CalendarClock, Wrench, Camera, MessageSquare, Package } from 'lucide-react'
 import { saveVisit } from '@/app/actions'
 import type { Visit } from '@/lib/data'
 import { DEFAULT_INTERVAL_KM, DEFAULT_INTERVAL_MONTHS, partsTotal, rub, toISODate, workPresets, type Part, type Powertrain, type WorkPreset } from '@/lib/format'
@@ -12,13 +12,15 @@ import { VoiceInput } from './voice-input'
 import { Section } from './form-section'
 import { MONEY } from '@/lib/features'
 import type { VoiceParsed } from '@/lib/ai'
+import { fmtQty, itemLabel, matchStock, partFromItem, partQty, qtyText, unitOf, type StockItem } from '@/lib/stock-match'
 
 const addMonths = (iso: string, m: number) => { const d = new Date(iso); d.setMonth(d.getMonth() + m); return toISODate(d) }
 const num = (s: string) => { const v = s.replace(/\s/g, ''); return v === '' ? null : Math.round(Number(v)) || null }
 
-export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId, initialWorks }: {
+export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId, initialWorks, stock = [], oilSpec = '', oilVolume = '' }: {
     carId: number; powertrain: Powertrain; visit?: Visit; lastMileage?: number | null; known: { carParts: Part[]; allParts: Part[] }
     apptId?: number; initialWorks?: string // визит из записи в календаре
+    stock?: StockItem[]; oilSpec?: string; oilVolume?: string // склад: масло и фильтры, которые спишутся деталями визита
 }) {
     const router = useRouter()
     const today = toISODate(new Date())
@@ -61,6 +63,21 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId
     const onPartName = (i: number, name: string) => {
         const k = known.allParts.find((x) => x.name.toLowerCase() === name.trim().toLowerCase())
         setParts((prev) => prev.map((p, j) => (j !== i ? p : k ? { name, article: p.article || k.article, price: p.price || k.price } : { ...p, name })))
+    }
+    // Склад: подходящее масло (вязкость машины) — первым
+    const [stockOpen, setStockOpen] = useState(false)
+    const specs = oilSpec.split(',').map((x) => x.trim().toUpperCase()).filter(Boolean)
+    const stockSorted = [...stock].sort((a, b) => Number(specs.includes(b.spec.toUpperCase())) - Number(specs.includes(a.spec.toUpperCase())))
+    const addFromStock = (i: StockItem) => {
+        const liters = i.kind === 'oil' ? partQty({ name: '' }, i, oilVolume) : null
+        setParts((prev) => [...prev.filter((x) => x.name.trim()), partFromItem(i, liters)])
+        setStockOpen(false)
+    }
+    const stockHint = (p: Part) => {
+        const it = p.name.trim() ? matchStock(p, stock) : null
+        if (!it) return null
+        const q = partQty(p, it, oilVolume)
+        return q ? `📦 Спишется со склада ${fmtQty(q)} ${unitOf(it.kind)} · сейчас ${qtyText(it)}` : '📦 Со склада — допишите литры: «…, 4 л»'
     }
     const Chip = ({ p }: { p: WorkPreset }) => (
         <button type="button" onClick={() => { addKnownPart(p); toggleWork(p.text) }} title={p.text}
@@ -133,16 +150,32 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId
 
                 <div className="mt-1 flex items-center justify-between border-t border-line pt-3">
                     <span className="text-sm font-bold">Детали</span>
-                    <button type="button" className="text-sm font-bold text-gold" onClick={() => setParts([...parts, { name: '', article: '', price: 0 }])}>
-                        <span className="flex items-center gap-1"><Plus size={16} />Добавить деталь</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {stock.length > 0 && <button type="button" className={`text-sm font-bold ${stockOpen ? 'text-white' : 'text-olive'}`} onClick={() => setStockOpen(!stockOpen)}>
+                            <span className="flex items-center gap-1"><Package size={16} />Со склада</span>
+                        </button>}
+                        <button type="button" className="text-sm font-bold text-gold" onClick={() => setParts([...parts, { name: '', article: '', price: 0 }])}>
+                            <span className="flex items-center gap-1"><Plus size={16} />Добавить</span>
+                        </button>
+                    </div>
                 </div>
+                {stockOpen && (
+                    <div className="flex flex-wrap gap-1.5 rounded-xl bg-bg p-2">
+                        {stockSorted.map((i) => (
+                            <button key={i.id} type="button" onClick={() => addFromStock(i)}
+                                className={`rounded-full border px-3 py-1.5 text-left text-sm font-semibold ${i.kind === 'oil' && specs.includes(i.spec.toUpperCase()) ? 'border-olive text-olive' : 'border-line text-white/85'}`}>
+                                {itemLabel(i)} <span className="text-xs text-muted">· {qtyText(i)}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
                 {parts.map((p, i) => (
                     <div key={i} className={`grid gap-2 rounded-xl bg-bg p-2 grid-cols-[1fr_auto]`}>
                         <input value={p.name} onChange={(e) => onPartName(i, e.target.value)} list="known-parts" className="input" placeholder="Масло Shell 5W-30, 4 л" />
                         <button type="button" aria-label="Удалить деталь" onClick={() => setParts(parts.filter((_, j) => j !== i))} className="px-2 text-muted"><Trash2 size={18} /></button>
                         <input value={p.article ?? ''} onChange={(e) => setPart(i, { article: e.target.value })} className={`input ${MONEY ? '' : 'col-span-2'}`} placeholder="Артикул / производитель" />
                         {MONEY && <input inputMode="numeric" value={p.price ? String(p.price) : ''} onChange={(e) => setPart(i, { price: num(e.target.value) ?? 0 })} className="input w-28" placeholder="₽" />}
+                        {stockHint(p) && <div className="col-span-2 px-1 text-xs font-semibold text-olive">{stockHint(p)}</div>}
                     </div>
                 ))}
                 <datalist id="known-parts">{known.allParts.map((p) => <option key={p.name} value={p.name} />)}</datalist>

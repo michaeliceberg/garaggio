@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { LogOut, Wallet } from 'lucide-react'
+import { LogOut, Package, Wallet } from 'lucide-react'
 import { BottomNav } from '@/components/bottom-nav'
 import { MONEY } from '@/lib/features'
 import { requireAuth } from '@/lib/auth'
@@ -24,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                     <img src="/slogan.webp" alt="Perfecto Pohuini" className="relative h-full w-full object-contain" />
                 </Link>
                 <div className="flex shrink-0 items-center gap-4">
+                    <Link href="/stock" className="flex flex-col items-center text-[11px] font-semibold text-muted" aria-label="Склад"><Package size={22} />Склад</Link>
                     {MONEY && <Link href="/money" className="flex items-center gap-1.5 text-sm font-semibold text-muted"><Wallet size={20} />Деньги</Link>}
                     <form action={logout}>
                         <button className="flex items-center gap-1 text-sm text-muted" aria-label="Выйти"><LogOut size={18} /></button>

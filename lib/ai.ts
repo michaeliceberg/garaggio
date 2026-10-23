@@ -105,3 +105,43 @@ export async function recognizeCar(image: { url: string } | { base64: string }, 
         model: String(v.model ?? ''), year: year > 1950 && year < 2100 ? year : null, color: String(v.color ?? '').toLowerCase(),
     }
 }
+
+// Склад: мастер надиктовал, что стоит на полках («Шелл пять-тридцать, три канистры по четыре литра, Манн семь-двенадцать три штуки»).
+export type StockParsed = { kind: 'oil' | 'filter'; name: string; spec: string; article: string; qty: number }
+const STOCK_SYSTEM = `Ты помощник автомеханика. Он надиктовал голосом, какое масло и какие фильтры стоят у него на складе (распознавание речи, возможны ошибки, числа словами).
+Разложи по позициям:
+- kind: oil — моторное масло, filter — фильтр.
+- name: производитель и линейка латиницей как принято («Shell Helix Ultra», «Mobil 1», «Castrol Edge», «Liqui Moly») или модель фильтра («Mann W 712/75», «Bosch 0 451 103 316»), без слова «масло»/«фильтр» и без вязкости.
+- spec: для масла вязкость в виде «5W-30»; для фильтра тип: масляный, воздушный, салонный или топливный (если не сказан — пусто).
+- article: артикул, если назван, иначе пусто.
+- qty: для масла ВСЕГО литров (3 канистры по 4 л = 12), для фильтров штук.
+Числа словами переводи в цифры («пять-тридцать» = 5W-30, «полтора литра» = 1.5). Одинаковые позиции объединяй. Ничего не выдумывай.`
+const STOCK_TOOL: Anthropic.Tool = {
+    name: 'stock_items', description: 'Позиции склада',
+    input_schema: {
+        type: 'object',
+        properties: {
+            items: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: { kind: { type: 'string', enum: ['oil', 'filter'] }, name: { type: 'string' }, spec: { type: 'string' }, article: { type: 'string' }, qty: { type: 'number' } },
+                    required: ['kind', 'name', 'spec', 'article', 'qty'],
+                },
+            },
+        },
+        required: ['items'],
+    },
+}
+export async function parseStockText(text: string): Promise<StockParsed[]> {
+    const client = new Anthropic()
+    const res = await client.messages.create({
+        model: 'claude-haiku-5-5', max_tokens: 1500, system: STOCK_SYSTEM, tools: [STOCK_TOOL], tool_choice: { type: 'tool', name: 'stock_items' },
+        messages: [{ role: 'user', content: text }],
+    })
+    const block = res.content.find((b) => b.type === 'tool_use')
+    if (!block || block.type !== 'tool_use') throw new Error('no tool_use')
+    const items = ((block.input as { items?: StockParsed[] }).items ?? [])
+    return items.map((i) => ({ kind: i.kind === 'filter' ? 'filter' as const : 'oil' as const, name: String(i.name ?? ''), spec: String(i.spec ?? ''), article: String(i.article ?? ''), qty: Math.max(0, Number(i.qty) || 0) }))
+        .filter((i) => i.name || i.spec || i.article)
+}

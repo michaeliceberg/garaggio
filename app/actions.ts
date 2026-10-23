@@ -13,6 +13,9 @@ import { synthesize } from '@/lib/tts'
 import { apptCar, apptWho, conflicts, endTime } from '@/lib/appts'
 import { apptText } from '@/lib/messages'
 import { shortBrand } from '@/lib/car-dicts'
+import { syncVisitStock, returnVisitStock } from '@/lib/stock'
+import { FILTER_TYPES, OIL_SPECS, type StockKind } from '@/lib/stock-match'
+import { parseStockText, type StockParsed } from '@/lib/ai'
 import { POWERTRAINS, formatPhone, guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
@@ -92,8 +95,15 @@ export async function saveVisit(input: {
         labor_cost: Math.round(input.labor_cost || 0), notes: input.notes.trim(), recommendations: input.recommendations.trim(),
         declined: input.declined, paid: input.paid, next_date: input.next_date || null, next_mileage: input.next_mileage,
     }
-    if (input.id) { await sql`UPDATE visits SET ${sql(v)} WHERE id = ${input.id}`; revalidatePath(`/cars/${input.car_id}`); return input.id }
+    if (input.id) {
+        await sql`UPDATE visits SET ${sql(v)} WHERE id = ${input.id}`
+        await syncVisitStock(input.id, input.car_id, parts)
+        revalidatePath(`/cars/${input.car_id}`); revalidatePath('/stock')
+        return input.id
+    }
     const [{ id }] = await sql<{ id: number }[]>`INSERT INTO visits ${sql(v)} RETURNING id`
+    await syncVisitStock(id, input.car_id, parts) // масло и фильтры со склада списываются сами
+    revalidatePath('/stock')
     // пожелания владельца показывались в шапке нового визита — после сохранения считаем их учтёнными (клиент видит «Маэстро учёл»)
     await sql`UPDATE car_wishes SET done = true WHERE car_id = ${input.car_id} AND NOT done`
     if (input.appt_id) {
@@ -137,7 +147,9 @@ export async function deleteVisit(_prev: string | null, f: FormData): Promise<st
     const id = int(f, 'id'), carId = int(f, 'car_id')
     if (id) {
         const files = await sql<{ file: string }[]>`SELECT file FROM photos WHERE visit_id = ${id}`
+        await returnVisitStock(id)
         await sql`DELETE FROM visits WHERE id = ${id}`
+        revalidatePath('/stock')
         await Promise.all(files.map((x) => fs.rm(path.join(process.env.UPLOAD_DIR!, x.file), { force: true })))
     }
     redirect(`/cars/${carId}`)
@@ -264,4 +276,65 @@ export async function setPartsOrdered(apptId: number, ordered: boolean) {
     requireAuth()
     await sql`UPDATE appointments SET parts_ordered = ${ordered} WHERE id = ${apptId}`
     revalidatePath('/order'); revalidatePath('/calendar')
+}
+
+// ── Склад (масло и фильтры) ────────────────────────────────────────────────────────────────
+const qtyNum = (v: unknown) => { const n = Number(String(v ?? '').replace(',', '.').replace(/\s/g, '')); return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0 }
+const cleanKind = (k: string): StockKind => (k === 'filter' ? 'filter' : 'oil')
+const cleanSpec = (kind: StockKind, spec: string) => {
+    const s = spec.trim()
+    if (kind === 'oil') { const u = s.toUpperCase().replace(/\s/g, '').replace(/^(\d+)W(\d+)$/, '$1W-$2'); return OIL_SPECS.includes(u) || /^\d+W-\d+$/.test(u) ? u : s }
+    return FILTER_TYPES.find((t) => t.startsWith(s.toLowerCase().slice(0, 4))) ?? s.toLowerCase()
+}
+export type NewStockItem = { kind: string; name: string; spec: string; article: string; qty: number; min_qty?: number }
+// Добавить позиции (форма или голос). Если такая уже есть (вид + название + вязкость/тип) — это пересчёт: ставим новый остаток.
+export async function saveStockItems(list: NewStockItem[]) {
+    requireAuth()
+    for (const raw of list.slice(0, 60)) {
+        const kind = cleanKind(raw.kind)
+        const it = { kind, name: String(raw.name ?? '').trim().slice(0, 120), spec: cleanSpec(kind, String(raw.spec ?? '')).slice(0, 40), article: String(raw.article ?? '').trim().slice(0, 60) }
+        if (!it.name && !it.spec && !it.article) continue
+        const qty = Math.max(0, qtyNum(raw.qty)), min = Math.max(0, qtyNum(raw.min_qty))
+        const [ex] = await sql<{ id: number; qty: number }[]>`SELECT id, qty::float8 AS qty FROM stock_items
+            WHERE kind = ${kind} AND lower(name) = lower(${it.name}) AND lower(spec) = lower(${it.spec}) LIMIT 1`
+        if (ex) {
+            if (qty !== ex.qty) await sql`INSERT INTO stock_moves (item_id, delta, reason) VALUES (${ex.id}, ${qty - ex.qty}, 'count')`
+            await sql`UPDATE stock_items SET qty = ${qty}, article = CASE WHEN ${it.article} <> '' THEN ${it.article} ELSE article END WHERE id = ${ex.id}`
+        } else {
+            const [{ id }] = await sql<{ id: number }[]>`INSERT INTO stock_items ${sql({ ...it, qty, min_qty: min || (kind === 'oil' ? 5 : 2) })} RETURNING id`
+            if (qty) await sql`INSERT INTO stock_moves (item_id, delta, reason) VALUES (${id}, ${qty}, 'start')`
+        }
+    }
+    revalidatePath('/stock'); revalidatePath('/order')
+}
+// «Пришло»: + к остатку. «Пересчитал»: ставим точное число (разница пишется в историю).
+export async function stockMove(itemId: number, mode: 'in' | 'count', value: number) {
+    requireAuth()
+    const v = qtyNum(value)
+    const [it] = await sql<{ qty: number }[]>`SELECT qty::float8 AS qty FROM stock_items WHERE id = ${itemId}`
+    if (!it) return
+    const delta = mode === 'in' ? v : v - it.qty
+    if (!delta || (mode === 'in' && v <= 0) || (mode === 'count' && v < 0)) return
+    await sql.begin(async (tx) => {
+        await tx`INSERT INTO stock_moves (item_id, delta, reason) VALUES (${itemId}, ${delta}, ${mode})`
+        await tx`UPDATE stock_items SET qty = qty + ${delta} WHERE id = ${itemId}`
+    })
+    revalidatePath('/stock'); revalidatePath('/order')
+}
+export async function updateStockItem(itemId: number, patch: { name: string; spec: string; article: string; min_qty: number; kind: string }) {
+    requireAuth()
+    const kind = cleanKind(patch.kind)
+    await sql`UPDATE stock_items SET ${sql({ name: patch.name.trim().slice(0, 120), spec: cleanSpec(kind, patch.spec).slice(0, 40), article: patch.article.trim().slice(0, 60), min_qty: Math.max(0, qtyNum(patch.min_qty)) })} WHERE id = ${itemId}`
+    revalidatePath('/stock')
+}
+export async function deleteStockItem(itemId: number) {
+    requireAuth()
+    await sql`DELETE FROM stock_items WHERE id = ${itemId}`
+    revalidatePath('/stock'); revalidatePath('/order')
+}
+// Надиктованные остатки → список позиций (мастер проверяет и сохраняет)
+export async function parseStockVoice(text: string): Promise<StockParsed[] | null> {
+    requireAuth()
+    if (!process.env.ANTHROPIC_API_KEY || !text.trim()) return null
+    try { return await parseStockText(text.slice(0, 4000)) } catch (e) { console.error('parseStockVoice', e); return null }
 }
