@@ -5,8 +5,6 @@ import { PhoneInput } from './phone-input'
 import { CarPhotoScan } from './car-photo-scan'
 import { BrandInput } from './brand-input'
 import { ColorPicker } from './color-picker'
-import { CarPhotoField } from './car-photo-field'
-import { carPhotoUrl } from './car-thumb'
 import { ModelInput } from './model-input'
 import { PlateInput } from './plate-input'
 import { getKnownModels } from '@/lib/data'
@@ -48,7 +46,6 @@ export async function CarForm({ car, plate, owner, appt }: { car?: Car; plate?: 
                     </select>
                 </div>
                 <ColorPicker defaultValue={car?.color} />
-                <CarPhotoField current={car ? carPhotoUrl(car) : ''} />
                 <VinInput defaultValue={car?.vin} />
             </div>
             </Section>

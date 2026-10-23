@@ -5,7 +5,6 @@ import { searchCars, getDue } from '@/lib/data'
 import { getDay, todayMsk, apptCar, apptWho, pendingAppts, ordersToDo } from '@/lib/appts'
 import { dateRu } from '@/lib/format'
 import { PlateBadge } from '@/components/plate'
-import { CarThumb } from '@/components/car-thumb'
 
 // Главная: поиск по номеру / имени / телефону / марке и список машин (свежие визиты — сверху).
 export default async function Home({ searchParams }: { searchParams: { q?: string } }) {
@@ -56,15 +55,10 @@ export default async function Home({ searchParams }: { searchParams: { q?: strin
                     {cars.map((c) => (
                         <li key={c.id}>
                             <Link href={`/cars/${c.id}`} className="card flex items-center gap-3 p-3">
-                                <div className="flex shrink-0 flex-col items-stretch gap-1">
-                                    <CarThumb car={c} className="h-12 w-full" />
-                                    <PlateBadge plate={c.plate} />
-                                </div>
+                                <PlateBadge plate={c.plate} />
                                 <div className="min-w-0 flex-1">
                                     <div className="truncate font-bold">{[c.brand, c.model].filter(Boolean).join(' ') || 'Без марки'}</div>
-                                    <div className="truncate text-sm text-muted">{c.owner_name || 'Владелец не указан'}</div>
-                                    {byPhone && c.owner_phone ? <div className="truncate text-sm text-muted">{c.owner_phone}</div>
-                                        : c.last_visit && <div className="truncate text-sm text-muted">Был {dateRu(c.last_visit)}</div>}
+                                    <div className="truncate text-sm text-muted">{c.owner_name || 'Владелец не указан'}{byPhone && c.owner_phone ? ` · ${c.owner_phone}` : c.last_visit ? ` · был ${dateRu(c.last_visit)}` : ''}</div>
                                 </div>
                                 <ChevronRight className="shrink-0 text-muted" />
                             </Link>
