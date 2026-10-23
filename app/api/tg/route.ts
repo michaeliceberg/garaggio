@@ -4,7 +4,7 @@ import crypto from 'node:crypto'
 import { formatPhone, km } from '@/lib/format'
 import { BOOKING_URL } from '@/lib/messages'
 import {
-    addMaster, carFromPayload, carsByPhone, contactKeyboard, getMasters, masterPayload, notifyMasters, sendToClient, tgSend,
+    addMaster, carFromPayload, tgApi, carsByPhone, contactKeyboard, getMasters, masterPayload, notifyMasters, sendToClient, tgSend,
 } from '@/lib/tg'
 
 // Обновления Telegram: их сюда отдаёт опросчик scripts/tg-poller.mjs (с секретом в заголовке).
@@ -29,11 +29,42 @@ export async function POST(req: Request) {
     if (!process.env.TG_WEBHOOK_SECRET || req.headers.get('x-telegram-bot-api-secret-token') !== process.env.TG_WEBHOOK_SECRET) {
         return new Response('forbidden', { status: 403 })
     }
-    const update = await req.json().catch(() => null) as { message?: TgMessage } | null
+    const update = await req.json().catch(() => null) as { message?: TgMessage; callback_query?: TgCallback } | null
+    if (update?.callback_query) { await handleCallback(update.callback_query).catch((e) => console.error('tg callback', e)); return Response.json({ ok: true }) }
     const m = update?.message
     // Отвечаем Telegram 200 даже при ошибке — иначе он будет слать то же сообщение снова и снова.
     if (m && m.chat.type === 'private') await handle(m).catch((e) => console.error('tg webhook', e))
     return Response.json({ ok: true })
+}
+
+// Кнопки под автонапоминанием о записи: ap:yes:<id> — «Приеду», ap:move:<id> — «Перенести»
+type TgCallback = { id: string; from: TgUser; data?: string; message?: { message_id: number; chat: { id: number }; text?: string } }
+async function handleCallback(q: TgCallback) {
+    const chatId = String(q.message?.chat.id ?? q.from.id)
+    const answer = (text?: string) => tgApi('answerCallbackQuery', { callback_query_id: q.id, ...(text ? { text } : {}) }).catch(() => {})
+    const mm = /^ap:(yes|move):(\d+)$/.exec(q.data ?? '')
+    if (!mm) return answer()
+    const [, what, idStr] = mm
+    if (idStr === '0') { await answer('Это пример — клиенту придёт такое же 🤌'); return }
+    const [a] = await sql<{ id: number; day: string; time: string; plate: string; brand: string; model: string; owner_name: string }[]>`
+        SELECT a.id, a.day::text AS day, to_char(a.start_time, 'HH24:MI') AS time, c.plate, c.brand, c.model, c.owner_name
+        FROM appointments a JOIN cars c ON c.id = a.car_id WHERE a.id = ${Number(idStr)} AND c.tg_chat_id = ${chatId} AND a.status = 'planned'`
+    if (!a) { await answer('Эта запись уже неактуальна'); return }
+    await sql`UPDATE appointments SET client_confirm = ${what} WHERE id = ${a.id}`
+    // убираем кнопки у напоминания, чтобы не нажимали ещё раз
+    if (q.message) await tgApi('editMessageReplyMarkup', { chat_id: chatId, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }).catch(() => {})
+    const when = `${new Date(a.day + 'T12:00:00Z').toLocaleDateString('ru-RU', { timeZone: 'UTC', day: 'numeric', month: 'long' })} в ${a.time}`
+    const who = [carTitle(a), a.owner_name].filter(Boolean).join(' · ')
+    if (what === 'yes') {
+        await answer('Грацие! Ждём 🤌')
+        await sendToClient(chatId, `Отлично, ждём вас ${when}! 🤌`)
+        await notifyMasters(`✅ Клиент подтвердил запись: ${who} — ${when}`)
+    } else {
+        await answer()
+        await sendToClient(chatId, 'Без проблем! Напишите сюда, когда вам удобно, — Маэстро подберёт время 🤌', { reply_markup: menuKeyboard })
+        await notifyMasters(`🔁 Клиент просит перенести запись: ${who} — ${when}. Ответьте ему (Reply), когда договоритесь — поменяйте в календаре.`, { clientChat: chatId })
+    }
+    revalidatePath('/calendar'); revalidatePath('/inbox')
 }
 
 async function handle(m: TgMessage) {

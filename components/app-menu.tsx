@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutGrid, Package, ShoppingCart, Wallet, LogOut, X } from 'lucide-react'
+import { LayoutGrid, Package, ShoppingCart, Wallet, LogOut, X, BellRing } from 'lucide-react'
 import { logout } from '@/app/actions'
 
-// «Меню» справа вверху: редкие разделы плитками (нижняя панель — только то, что нужно каждый день).
+// «Меню» справа вверху (Склад — справа, под большой палец правши): редкие разделы плитками (нижняя панель — только то, что нужно каждый день).
 // Новый раздел — просто ещё одна плитка в TILES. «Выйти» — мелко внизу: нужно редко (вошли с чужого телефона).
 export function AppMenu({ money }: { money: boolean }) {
     const [open, setOpen] = useState(false)
@@ -25,8 +25,9 @@ export function AppMenu({ money }: { money: boolean }) {
     }, [open])
 
     const TILES = [
-        { href: '/stock', icon: Package, label: 'Склад', hint: 'масло и фильтры', color: '#8DB255' },
         { href: '/order', icon: ShoppingCart, label: 'Что заказать', hint: 'к ТО по записям', color: '#F2C35B' },
+        { href: '/stock', icon: Package, label: 'Склад', hint: 'масло и фильтры', color: '#8DB255' },
+        { href: '/reminders', icon: BellRing, label: 'Напоминания', hint: 'бот пишет сам', color: '#2AABEE' },
         ...(money ? [{ href: '/money', icon: Wallet, label: 'Деньги', hint: 'долги и выручка', color: '#53ADEF' }] : []),
     ]
 

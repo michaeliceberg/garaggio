@@ -139,6 +139,8 @@ function ApptCard({ a, past, voice }: { a: Appt; past: boolean; voice: boolean }
                     {done && <p className="mt-1 text-sm font-bold text-olive">✓ Приехал{a.visit_id && <> · <Link href={`/visits/${a.visit_id}`} className="underline">визит</Link></>}</p>}
                     {cancelled && <p className="mt-1 text-sm font-bold text-tomato">Отменено</p>}
                     {a.status === 'pending' && <p className="mt-1 text-sm font-bold text-gold">🆕 Заявка с сайта — ждёт подтверждения</p>}
+                    {a.status === 'planned' && a.client_confirm === 'yes' && <p className="mt-1 text-sm font-bold text-olive">✅ Клиент подтвердил в боте</p>}
+                    {a.status === 'planned' && a.client_confirm === 'move' && <p className="mt-1 text-sm font-bold text-gold">🔁 Клиент просит перенести — напишите ему</p>}
                 </div>
                 <Link href={`/calendar/${a.id}`} className="text-muted" aria-label="Изменить запись"><Pencil size={18} /></Link>
             </div>

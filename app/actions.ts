@@ -8,12 +8,13 @@ import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
 import { checkPassword, endSession, requireAuth } from '@/lib/auth'
 import { parseVoiceText, type VoiceParsed } from '@/lib/ai'
-import { notifyMasters, removeMaster, sendToClient, sendVoiceToClient } from '@/lib/tg'
+import { getMasters, notifyMasters, removeMaster, sendToClient, sendVoiceToClient, tgSend } from '@/lib/tg'
 import { synthesize } from '@/lib/tts'
 import { apptCar, apptWho, conflicts, endTime } from '@/lib/appts'
 import { apptText } from '@/lib/messages'
 import { shortBrand } from '@/lib/car-dicts'
 import { syncVisitStock, returnVisitStock } from '@/lib/stock'
+import { apptButtons, apptReminderText, dueButtons, dueReminderText, runReminders, setReminderSetting } from '@/lib/reminders'
 import { FILTER_TYPES, OIL_SPECS, type StockKind } from '@/lib/stock-match'
 import { parseStockText, type StockParsed } from '@/lib/ai'
 import { POWERTRAINS, formatPhone, guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
@@ -220,7 +221,8 @@ export async function saveAppt(input: {
         day: input.day, start_time: input.start_time, duration_min: duration, work: input.work.trim(),
     }
     let id = input.id
-    if (id) await sql`UPDATE appointments SET ${sql(v)} WHERE id = ${id}`
+    // перенесли день или время — прошлое «подтвердил/перенести» от клиента больше не актуально
+    if (id) await sql`UPDATE appointments SET ${sql(v)}, client_confirm = CASE WHEN day = ${v.day} AND start_time = ${v.start_time} THEN client_confirm ELSE '' END WHERE id = ${id}`
     else [{ id }] = await sql<{ id: number }[]>`INSERT INTO appointments ${sql(v)} RETURNING id`
     revalidatePath('/calendar'); revalidatePath('/'); if (input.car_id) revalidatePath(`/cars/${input.car_id}`)
     return { ok: true, id, day: input.day }
@@ -337,4 +339,31 @@ export async function parseStockVoice(text: string): Promise<StockParsed[] | nul
     requireAuth()
     if (!process.env.ANTHROPIC_API_KEY || !text.trim()) return null
     try { return await parseStockText(text.slice(0, 4000)) } catch (e) { console.error('parseStockVoice', e); return null }
+}
+
+// ── Автонапоминания ботом ─────────────────────────────────────────────────────────────────
+export async function toggleReminder(kind: 'appt' | 'due', on: boolean) {
+    requireAuth()
+    await setReminderSetting(kind, on)
+    revalidatePath('/reminders')
+}
+// «Отправить сейчас» — не ждать cron (часы не проверяем, включатели — да)
+export async function sendRemindersNow() {
+    requireAuth()
+    const r = await runReminders({ ignoreHours: true })
+    revalidatePath('/reminders'); revalidatePath('/inbox')
+    return r
+}
+// Пример в Telegram мастерам — посмотреть, как это увидит клиент (кнопки в примере ничего не меняют)
+export async function sendReminderSample() {
+    requireAuth()
+    const masters = await getMasters()
+    if (!masters.length) return 'Сначала подключите себя к боту в «Ящике»'
+    const tomorrow = new Date(Date.now() + 86400_000 + 3 * 3600_000).toISOString().slice(0, 10)
+    for (const m of masters) {
+        await tgSend(m.chat_id, '👀 Так выглядят автонапоминания у клиента:')
+        await tgSend(m.chat_id, apptReminderText('Ильдар', 'Audi Q7', tomorrow, '10:00', 'ТО'), { reply_markup: { inline_keyboard: apptButtons(0) } })
+        await tgSend(m.chat_id, dueReminderText('Ильдар', 'Audi Q7', 'до 30 октября'), { reply_markup: { inline_keyboard: dueButtons } })
+    }
+    return null
 }

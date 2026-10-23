@@ -161,3 +161,18 @@ CREATE TABLE IF NOT EXISTS stock_moves (
 );
 CREATE INDEX IF NOT EXISTS stock_moves_item_idx ON stock_moves (item_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS stock_moves_visit_idx ON stock_moves (visit_id);
+
+-- Автонапоминания ботом: что и кому уже отправлено (ключ — чтобы не слать одно и то же дважды).
+-- kind: appt (накануне записи), due (пора на ТО), due2 (повтор через 2 недели). Включаются в settings: remind_appt / remind_due = '1'.
+CREATE TABLE IF NOT EXISTS reminder_log (
+    id       serial PRIMARY KEY,
+    kind     text NOT NULL,
+    ref      text NOT NULL UNIQUE,
+    car_id   int REFERENCES cars(id) ON DELETE CASCADE,
+    chat_id  bigint NOT NULL,
+    text     text NOT NULL DEFAULT '',
+    sent_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS reminder_log_sent_idx ON reminder_log (sent_at DESC);
+-- ответ клиента на напоминание о записи: '' | yes (приедет) | move (просит перенести)
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS client_confirm text NOT NULL DEFAULT '';

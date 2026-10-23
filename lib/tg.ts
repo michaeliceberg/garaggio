@@ -67,9 +67,9 @@ export async function carsByPhone(phone: string) {
 }
 
 // Сообщение клиенту от мастера: отправить и записать в переписку. Если клиент заблокировал бота — отвязываем.
-export async function sendToClient(chatId: string, text: string) {
+export async function sendToClient(chatId: string, text: string, extra: Extra = {}) {
     try {
-        await tgSend(chatId, text)
+        await tgSend(chatId, text, extra)
     } catch (e) {
         if ((e as { code?: number }).code === 403) {
             await sql`UPDATE cars SET tg_chat_id = NULL WHERE tg_chat_id = ${chatId}`
