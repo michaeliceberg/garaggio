@@ -116,3 +116,4 @@ cd /var/www/garaggio && git checkout -q package-lock.json; git pull -q origin ma
   силуэт машины её цветом (тёмные цвета — серым).
 - Марки коротко: `shortBrand` (lib/car-dicts.ts) — «Mercedes-Benz» → «Mercedes» при сохранении и распознавании фото,
   в справочнике марка «Mercedes»; старые записи обновлены в БД.
+- Обрезка фото машины (`PhotoCrop`, components/photo-crop.tsx): после выбора фото — окно с квадратной рамкой, двигать пальцем, увеличивать двумя пальцами/ползунком; на выходе 600×600 JPEG. Используется в форме и на карточке.

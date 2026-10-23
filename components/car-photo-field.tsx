@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { Camera, X } from 'lucide-react'
-import { compressPhoto } from '@/lib/photo-client'
+import { PhotoCrop } from './photo-crop'
 
 export const blobToDataUrl = (b: Blob) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(b) })
 
@@ -13,10 +13,12 @@ export function CarPhotoField({ current }: { current?: string }) {
     const [removed, setRemoved] = useState(false)
     const [busy, setBusy] = useState(false)
     const shown = data || (removed ? '' : current ?? '')
-    const pick = async (f?: File) => {
+    const [crop, setCrop] = useState<File | null>(null)
+    const pick = async (f?: Blob) => {
         if (!f) return
+        setCrop(null)
         setBusy(true)
-        try { setData(await blobToDataUrl(await compressPhoto(f, 900))); setRemoved(false) } finally { setBusy(false) }
+        try { setData(await blobToDataUrl(f)); setRemoved(false) } finally { setBusy(false) }
     }
     return (
         <div className="col-span-2">
@@ -33,7 +35,8 @@ export function CarPhotoField({ current }: { current?: string }) {
                     {shown && <button type="button" className="flex w-fit items-center gap-1 font-semibold text-tomato" onClick={() => { setData(''); setRemoved(true) }}><X size={14} />Убрать фото</button>}
                 </div>
             </div>
-            <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
+            <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setCrop(f); e.target.value = '' }} />
+            {crop && <PhotoCrop file={crop} onDone={pick} onCancel={() => setCrop(null)} />}
             <input type="hidden" name="photo_data" value={data} />
             <input type="hidden" name="photo_remove" value={removed && !data ? '1' : ''} />
         </div>

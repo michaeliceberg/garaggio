@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { Camera } from 'lucide-react'
 import { setCarPhoto } from '@/app/actions'
-import { compressPhoto } from '@/lib/photo-client'
+import { PhotoCrop } from './photo-crop'
 import { blobToDataUrl } from './car-photo-field'
 
 // Аватарка на карточке машины: нажал — выбрал фото — сразу сохранилось.
@@ -11,11 +11,13 @@ export function CarPhotoTile({ carId, url, color }: { carId: number; url: string
     const input = useRef<HTMLInputElement>(null)
     const [busy, setBusy] = useState(false)
     const [preview, setPreview] = useState('')
-    const pick = async (f?: File) => {
+    const [crop, setCrop] = useState<File | null>(null)
+    const pick = async (f?: Blob) => {
         if (!f) return
+        setCrop(null)
         setBusy(true)
         try {
-            const d = await blobToDataUrl(await compressPhoto(f, 900))
+            const d = await blobToDataUrl(f)
             setPreview(d)
             await setCarPhoto(carId, d)
         } finally { setBusy(false) }
@@ -30,7 +32,8 @@ export function CarPhotoTile({ carId, url, color }: { carId: number; url: string
                 {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : <Camera size={24} color={color} />}
                 {busy && <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs text-white">…</span>}
             </button>
-            <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
+            <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setCrop(f); e.target.value = '' }} />
+            {crop && <PhotoCrop file={crop} onDone={pick} onCancel={() => setCrop(null)} />}
         </>
     )
 }
