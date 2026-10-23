@@ -1,6 +1,5 @@
 // Сжатие фото в браузере перед отправкой: длинная сторона до 1600 px, JPEG ~0.82 (обычно 200–400 КБ вместо 3–5 МБ).
-export async function compressPhoto(file: File): Promise<Blob> {
-    const MAX = 1600
+export async function compressPhoto(file: File, MAX = 1600): Promise<Blob> {
     try {
         const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' } as ImageBitmapOptions)
         const k = Math.min(1, MAX / Math.max(bmp.width, bmp.height))

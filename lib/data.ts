@@ -7,6 +7,7 @@ export type Car = {
     owner_name: string; owner_phone: string; owner_address: string; owner_job: string; notes: string; oil_spec: string; oil_volume: string; oil_method: string; oil_note: string; created_at: string; powertrain: Powertrain
     tg_chat_id: string | null // bigint приходит строкой
     owner_token: string | null
+    photo: string // файл аватарки в UPLOAD_DIR, '' — нет
 }
 export type Visit = {
     id: number; car_id: number; visit_date: string; mileage: number | null; works: string; parts: Part[]; labor_cost: number; paid: boolean

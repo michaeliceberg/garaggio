@@ -16,7 +16,7 @@ export const BRANDS: { name: string; aliases?: string[] }[] = [
     { name: 'Lada', aliases: ['лада', 'ваз', 'жигули'] }, { name: 'Lamborghini', aliases: ['ламборгини'] }, { name: 'Land Rover', aliases: ['ленд ровер', 'рендж'] },
     { name: 'Lexus', aliases: ['лексус'] }, { name: 'Li Auto', aliases: ['лисян', 'lixiang', 'ли'] }, { name: 'Livan', aliases: ['ливан'] },
     { name: 'Lynk & Co', aliases: ['линк'] }, { name: 'Maserati', aliases: ['мазерати'] }, { name: 'Mazda', aliases: ['мазда'] },
-    { name: 'Mercedes-Benz', aliases: ['мерседес', 'мерс'] }, { name: 'Mini', aliases: ['мини'] }, { name: 'Mitsubishi', aliases: ['митсубиси', 'мицубиси'] },
+    { name: 'Mercedes', aliases: ['мерседес', 'мерс', 'mercedes-benz'] }, { name: 'Mini', aliases: ['мини'] }, { name: 'Mitsubishi', aliases: ['митсубиси', 'мицубиси'] },
     { name: 'Moskvich', aliases: ['москвич'] }, { name: 'Nissan', aliases: ['ниссан'] }, { name: 'Omoda', aliases: ['омода'] },
     { name: 'Opel', aliases: ['опель'] }, { name: 'Peugeot', aliases: ['пежо'] }, { name: 'Porsche', aliases: ['порше'] },
     { name: 'Renault', aliases: ['рено'] }, { name: 'Rolls-Royce', aliases: ['роллс'] }, { name: 'Skoda', aliases: ['шкода'] },
@@ -26,6 +26,9 @@ export const BRANDS: { name: string; aliases?: string[] }[] = [
     { name: 'Volkswagen', aliases: ['фольксваген', 'фольц', 'vw'] }, { name: 'Volvo', aliases: ['вольво'] }, { name: 'Voyah', aliases: ['воя'] },
     { name: 'Xpeng', aliases: ['икспенг'] }, { name: 'Zeekr', aliases: ['зикр'] },
 ]
+// Марки пишем коротко: «Mercedes», а не «Mercedes-Benz» (так ввёл бы мастер и так короче в списке)
+const SHORT_BRANDS: Record<string, string> = { 'mercedes-benz': 'Mercedes', 'mercedes benz': 'Mercedes', 'мерседес-бенц': 'Mercedes', 'мерседес': 'Mercedes' }
+export const shortBrand = (b: string) => SHORT_BRANDS[b.trim().toLowerCase()] ?? b.trim()
 export function suggestBrands(q: string, limit = 6) {
     const s = q.trim().toLowerCase()
     if (!s) return []
@@ -92,7 +95,7 @@ const M: Record<string, string> = {
     'Lynk & Co': '01, 05, 06, 08, 09',
     'Maserati': 'Levante, Ghibli, Quattroporte, Grecale, MC20',
     'Mazda': '6|шестерка, CX-5|сх5, 3|тройка, CX-9, CX-30, CX-7, CX-60, MX-5, 2',
-    'Mercedes-Benz': 'E-Class|ешка, C-Class|цешка, S-Class|эска, GLE, GLC, G-Class|гелик, GLS, ML, GL, A-Class, B-Class, CLA, CLS, GLA, GLB, V-Class|виано, Vito|вито, Sprinter|спринтер, EQS, EQE, Maybach',
+    'Mercedes': 'E-Class|ешка, C-Class|цешка, S-Class|эска, GLE, GLC, G-Class|гелик, GLS, ML, GL, A-Class, B-Class, CLA, CLS, GLA, GLB, V-Class|виано, Vito|вито, Sprinter|спринтер, EQS, EQE, Maybach',
     'Mini': 'Cooper|купер, Countryman, Clubman',
     'Mitsubishi': 'Outlander|аутлендер, Pajero|паджеро, Lancer|лансер, ASX, L200, Pajero Sport, Eclipse Cross, Galant, Delica',
     'Moskvich': '3, 3e, 6',

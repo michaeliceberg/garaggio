@@ -134,3 +134,6 @@ CREATE INDEX IF NOT EXISTS car_wishes_car_idx ON car_wishes (car_id, created_at 
 
 -- «Что заказать к ТО»: мастер отметил, что детали к этой записи уже заказаны
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS parts_ordered boolean NOT NULL DEFAULT false;
+
+-- фото машины (аватарка в списке и на карточке): путь файла в UPLOAD_DIR, '' — нет фото
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS photo text NOT NULL DEFAULT '';

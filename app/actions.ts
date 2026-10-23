@@ -12,6 +12,7 @@ import { notifyMasters, removeMaster, sendToClient, sendVoiceToClient } from '@/
 import { synthesize } from '@/lib/tts'
 import { apptCar, apptWho, conflicts, endTime } from '@/lib/appts'
 import { apptText } from '@/lib/messages'
+import { shortBrand } from '@/lib/car-dicts'
 import { POWERTRAINS, formatPhone, guessPowertrain, normPlate, normVin, type Part } from '@/lib/format'
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
@@ -24,7 +25,7 @@ export async function saveCar(f: FormData) {
     const id = int(f, 'id')
     const plate = str(f, 'plate').toUpperCase()
     const v = {
-        plate, plate_norm: normPlate(plate), vin: normVin(str(f, 'vin')), brand: str(f, 'brand'), model: str(f, 'model'),
+        plate, plate_norm: normPlate(plate), vin: normVin(str(f, 'vin')), brand: shortBrand(str(f, 'brand')), model: str(f, 'model'),
         year: int(f, 'year'), color: str(f, 'color'),
         powertrain: (POWERTRAINS as string[]).includes(str(f, 'powertrain')) ? str(f, 'powertrain') : guessPowertrain(str(f, 'brand'), str(f, 'model')), owner_name: str(f, 'owner_name'), owner_phone: formatPhone(str(f, 'owner_phone')),
         owner_address: str(f, 'owner_address'), owner_job: str(f, 'owner_job'), notes: str(f, 'notes'),
@@ -33,10 +34,35 @@ export async function saveCar(f: FormData) {
     let carId = id
     if (id) await sql`UPDATE cars SET ${sql(v)} WHERE id = ${id}`
     else [{ id: carId }] = await sql<{ id: number }[]>`INSERT INTO cars ${sql(v)} RETURNING id`
+    await saveCarPhoto(carId!, str(f, 'photo_data'), str(f, 'photo_remove') === '1')
     const appt = int(f, 'appt') // машину завели из записи в календаре — привязываем запись
     if (appt) { await sql`UPDATE appointments SET car_id = ${carId}, client_name = '', client_phone = '' WHERE id = ${appt}`; revalidatePath('/calendar') }
     revalidatePath('/')
     redirect(`/cars/${carId}`)
+}
+// Аватарка машины: из формы приходит уже сжатое фото (data:image/jpeg;base64,…). Старый файл удаляем.
+async function saveCarPhoto(carId: number, dataUrl: string, remove = false) {
+    const m = /^data:image\/(jpeg|png|webp);base64,(.+)$/.exec(dataUrl)
+    if (!m && !remove) return
+    const [old] = await sql<{ photo: string }[]>`SELECT photo FROM cars WHERE id = ${carId}`
+    let rel = ''
+    if (m) {
+        const buf = Buffer.from(m[2], 'base64')
+        if (buf.length > 3 * 1024 * 1024) return
+        rel = `cars/${carId}/${crypto.randomUUID()}.jpg`
+        const abs = path.join(process.env.UPLOAD_DIR!, rel)
+        await fs.mkdir(path.dirname(abs), { recursive: true })
+        await fs.writeFile(abs, buf)
+    }
+    await sql`UPDATE cars SET photo = ${rel} WHERE id = ${carId}`
+    if (old?.photo) await fs.rm(path.join(process.env.UPLOAD_DIR!, old.photo), { force: true })
+}
+// Фото машины прямо с карточки (нажали на аватарку)
+export async function setCarPhoto(carId: number, dataUrl: string) {
+    requireAuth()
+    await saveCarPhoto(carId, dataUrl, !dataUrl)
+    revalidatePath('/')
+    revalidatePath(`/cars/${carId}`)
 }
 // Удаление машины и визита — только с паролем мастера (защита от случайного нажатия). Возвращает текст ошибки.
 const WRONG_PW = 'Неверный пароль'
@@ -45,7 +71,8 @@ export async function deleteCar(_prev: string | null, f: FormData): Promise<stri
     if (!checkPassword(str(f, 'password'))) return WRONG_PW
     const id = int(f, 'id')
     if (id) {
-        const files = await sql<{ file: string }[]>`SELECT p.file FROM photos p JOIN visits v ON v.id = p.visit_id WHERE v.car_id = ${id}`
+        const files = await sql<{ file: string }[]>`SELECT p.file FROM photos p JOIN visits v ON v.id = p.visit_id WHERE v.car_id = ${id}
+            UNION ALL SELECT photo FROM cars WHERE id = ${id} AND photo <> ''`
         await sql`DELETE FROM cars WHERE id = ${id}`
         await Promise.all(files.map((x) => fs.rm(path.join(process.env.UPLOAD_DIR!, x.file), { force: true })))
     }

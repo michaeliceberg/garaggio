@@ -1,4 +1,5 @@
 import 'server-only'
+import { shortBrand } from './car-dicts'
 import Anthropic from '@anthropic-ai/sdk'
 
 // Разбор надиктованного мастером текста в поля визита (Claude Haiku, ответ строго по схеме через tool use).
@@ -85,7 +86,7 @@ const CAR_TOOL: Anthropic.Tool = {
 const CAR_SYSTEM = `Тебе присылают фото машины, её госномера, свидетельства о регистрации (СТС), ПТС или таблички с VIN.
 Выпиши то, что видно. Госномер РФ: буквы только А В Е К М Н О Р С Т У Х, пиши их кириллицей, без пробелов, с регионом (А123ВС777).
 VIN — ровно 17 знаков, латиница и цифры, без букв I, O, Q. Если поле не видно или не уверен — оставь пусто (год — null). Ничего не выдумывай.
-Марку пиши латиницей как принято (Mercedes-Benz, Toyota, Zeekr), модель — как на документе.`
+Марку пиши латиницей как принято (Mercedes, Toyota, Zeekr — Mercedes без «-Benz»), модель — как на документе.`
 export async function recognizeCar(image: { url: string } | { base64: string }, model = 'claude-haiku-5-5'): Promise<CarFromPhoto> {
     const client = new Anthropic()
     const source: Anthropic.ImageBlockParam['source'] = 'url' in image
@@ -100,7 +101,7 @@ export async function recognizeCar(image: { url: string } | { base64: string }, 
     const v = block.input as CarFromPhoto
     const year = Math.round(Number(v.year) || 0)
     return {
-        plate: String(v.plate ?? '').toUpperCase().replace(/\s/g, ''), vin: String(v.vin ?? ''), brand: String(v.brand ?? ''),
+        plate: String(v.plate ?? '').toUpperCase().replace(/\s/g, ''), vin: String(v.vin ?? ''), brand: shortBrand(String(v.brand ?? '')),
         model: String(v.model ?? ''), year: year > 1950 && year < 2100 ? year : null, color: String(v.color ?? '').toLowerCase(),
     }
 }
