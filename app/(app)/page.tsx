@@ -62,7 +62,9 @@ export default async function Home({ searchParams }: { searchParams: { q?: strin
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="truncate font-bold">{[c.brand, c.model].filter(Boolean).join(' ') || 'Без марки'}</div>
-                                    <div className="truncate text-sm text-muted">{c.owner_name || 'Владелец не указан'}{byPhone && c.owner_phone ? ` · ${c.owner_phone}` : c.last_visit ? ` · был ${dateRu(c.last_visit)}` : ''}</div>
+                                    <div className="truncate text-sm text-muted">{c.owner_name || 'Владелец не указан'}</div>
+                                    {byPhone && c.owner_phone ? <div className="truncate text-sm text-muted">{c.owner_phone}</div>
+                                        : c.last_visit && <div className="truncate text-sm text-muted">Был {dateRu(c.last_visit)}</div>}
                                 </div>
                                 <ChevronRight className="shrink-0 text-muted" />
                             </Link>
