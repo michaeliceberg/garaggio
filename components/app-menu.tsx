@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutGrid, Package, ShoppingCart, Wallet, LogOut, X, BellRing } from 'lucide-react'
+import { ChevronUp, Package, ShoppingCart, Wallet, LogOut, X, BellRing } from 'lucide-react'
 import { logout } from '@/app/actions'
 
-// «Меню» справа вверху (Склад — справа, под большой палец правши): редкие разделы плитками (нижняя панель — только то, что нужно каждый день).
+// «Ещё»: ушко над нижней панелью справа, под большой палец (Склад — справа, под палец правши): редкие разделы плитками (нижняя панель — только то, что нужно каждый день).
 // Новый раздел — просто ещё одна плитка в TILES. «Выйти» — мелко внизу: нужно редко (вошли с чужого телефона).
+const HIDE_TAB = [/\/visits\/new$/, /\/visits\/\d+\/edit$/, /^\/order/, /^\/inbox\/.+/]
+
 export function AppMenu({ money }: { money: boolean }) {
     const [open, setOpen] = useState(false)
     const [mounted, setMounted] = useState(false)
@@ -33,17 +35,20 @@ export function AppMenu({ money }: { money: boolean }) {
 
     return (
         <>
-            <button type="button" onClick={() => setOpen(true)} aria-label="Меню" aria-expanded={open}
-                className="flex flex-col items-center text-[11px] font-semibold text-muted">
-                <LayoutGrid size={22} />Меню
-            </button>
+            {/* ушко вырастает из верхнего края нижней панели; там, где внизу своя кнопка (сохранить визит, ответ клиенту, заказ), — прячется */}
+            {!HIDE_TAB.some((r) => r.test(pathname)) && (
+                <button type="button" onClick={() => setOpen(true)} aria-label="Ещё разделы" aria-expanded={open}
+                    className="menu-tab absolute -top-[30px] right-3 z-10 flex h-[31px] items-center gap-1 rounded-t-xl border border-b-0 border-line bg-bg px-3 text-xs font-bold text-muted active:text-gold">
+                    <ChevronUp size={16} strokeWidth={2.6} className="menu-tab-arrow text-gold" />Ещё
+                </button>
+            )}
             {mounted && open && createPortal(
                 <div className="fixed inset-0 z-40 flex items-end justify-center" role="dialog" aria-modal="true" aria-label="Меню">
                     <button type="button" aria-label="Закрыть" className="menu-fade absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
                     <div className="menu-sheet relative w-full max-w-2xl rounded-t-3xl border-t border-line bg-card px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-3">
                         <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-line" />
                         <div className="mb-3 flex items-center justify-between">
-                            <h2 className="text-lg font-black">Меню</h2>
+                            <h2 className="text-lg font-black">Ещё</h2>
                             <button type="button" onClick={() => setOpen(false)} aria-label="Закрыть" className="flex h-10 w-10 items-center justify-center rounded-full bg-bg text-muted"><X size={20} /></button>
                         </div>
                         <div className="grid grid-cols-2 gap-3">

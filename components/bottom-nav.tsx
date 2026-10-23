@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Car, BellRing, Plus, Inbox, CalendarDays } from 'lucide-react'
+import { AppMenu } from './app-menu'
 
 type Tab = 'cars' | 'calendar' | 'new' | 'due' | 'inbox' | null
 const tabOf = (p: string): Tab =>
@@ -15,7 +16,7 @@ const tabOf = (p: string): Tab =>
 
 // Нижнее меню. Выбранный раздел: иконка подпрыгивает, под ней светится «таблетка», подпись золотая.
 // Подсвечиваем сразу по нажатию (страница может грузиться секунду), потом — по адресу.
-export function BottomNav({ tg, unread }: { tg: boolean; unread: number }) {
+export function BottomNav({ tg, unread, money }: { tg: boolean; unread: number; money: boolean }) {
     const pathname = usePathname()
     const [tapped, setTapped] = useState<Tab>(null)
     useEffect(() => setTapped(null), [pathname])
@@ -37,6 +38,7 @@ export function BottomNav({ tg, unread }: { tg: boolean; unread: number }) {
 
     return (
         <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+            <div className="relative mx-auto max-w-2xl"><AppMenu money={money} /></div>
             <div className={`mx-auto grid max-w-2xl ${tg ? 'grid-cols-5' : 'grid-cols-4'}`}>
                 {item('cars', '/', Car, 'Машины')}
                 {item('calendar', '/calendar', CalendarDays, 'Запись')}
