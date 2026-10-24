@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Check, Undo2 } from 'lucide-react'
 import { setWishDone } from '@/app/actions'
+import { NumberedText } from '@/components/numbered-text'
 
 type W = { id: number; text: string; done: boolean; created_at: string }
 
@@ -22,7 +23,7 @@ export function CarWishes({ wishes }: { wishes: W[] }) {
                 <div key={w.id} className={`flex items-start justify-between gap-2 text-sm ${w.done ? 'opacity-50' : ''}`}>
                     <div>
                         <span className="text-xs text-muted">{new Date(w.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} · </span>
-                        <span className={`whitespace-pre-wrap ${w.done ? 'line-through' : ''}`}>{w.text}</span>
+                        <NumberedText text={w.text} className={w.done ? 'line-through' : ''} />
                     </div>
                     <button type="button" onClick={() => toggle(w)} className="flex shrink-0 items-center gap-1 rounded-lg border border-line px-2 py-1 text-xs font-bold text-muted">
                         {w.done ? <><Undo2 size={14} />Вернуть</> : <><Check size={14} />Учтено</>}

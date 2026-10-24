@@ -31,7 +31,7 @@ export function VisitHeader({ car, title, wishes = [], prev }: { car: Car; title
                     {wishes.length > 0 && (
                         <div>
                             <div className="text-xs font-bold text-muted">📝 Клиент хочет (написал на своей странице)</div>
-                            <ul className="list-disc pl-5">{wishes.map((w) => <li key={w.id} className="whitespace-pre-wrap">{w.text}</li>)}</ul>
+                            <ul className="list-disc pl-5">{wishes.map((w) => <li key={w.id}><NumberedText text={w.text} /></li>)}</ul>
                         </div>
                     )}
                 </div>

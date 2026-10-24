@@ -54,7 +54,7 @@ export default async function OwnerPage({ params }: { params: { token: string } 
                                     <span>{new Date(w.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })}</span>
                                     {w.done ? <span className="flex items-center gap-1 font-bold text-olive"><Check size={14} />Маэстро учёл</span> : <span>ждёт Маэстро</span>}
                                 </div>
-                                <p className="mt-1 whitespace-pre-wrap">{w.text}</p>
+                                <NumberedText text={w.text} className="mt-1" />
                             </li>
                         ))}
                     </ul>
