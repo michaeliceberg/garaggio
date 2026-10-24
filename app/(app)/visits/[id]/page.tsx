@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Pencil, X, AlertTriangle } from 'lucide-react'
+import { Pencil, AlertTriangle } from 'lucide-react'
 import { getCar, getPhotos, getVisit } from '@/lib/data'
 import { dateRu, km, rub, partsTotal } from '@/lib/format'
 import { PaidToggle } from '@/components/paid-toggle'
@@ -9,12 +9,12 @@ import { PlateBadge } from '@/components/plate'
 import { AddPhotos } from '@/components/add-photos'
 import { ShareReport } from '@/components/share-report'
 import { ttsEnabled } from '@/lib/tts'
-import { ConfirmButton } from '@/components/confirm-button'
 import { PasswordDelete } from '@/components/password-delete'
-import { deletePhoto, deleteVisit } from '@/app/actions'
+import { deleteVisit } from '@/app/actions'
 import { getVisitMoves } from '@/lib/stock'
 import { fmtQty, itemLabel, unitOf } from '@/lib/stock-match'
 import { NumberedText } from '@/components/numbered-text'
+import { PhotoGallery } from '@/components/photo-gallery'
 
 export default async function VisitPage({ params }: { params: { id: string } }) {
     const visit = await getVisit(Number(params.id))
@@ -75,21 +75,7 @@ export default async function VisitPage({ params }: { params: { id: string } }) 
             <section className="card flex flex-col gap-3 p-4">
                 <h2 className="font-black">Фото · {photos.length}</h2>
                 {photos.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2">
-                        {photos.map((p) => (
-                            <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl border border-line">
-                                <a href={`/api/photos/${p.id}`} target="_blank" rel="noreferrer">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={`/api/photos/${p.id}`} alt="" loading="lazy" className="h-full w-full object-cover" />
-                                </a>
-                                <form action={deletePhoto} className="absolute right-1 top-1">
-                                    <input type="hidden" name="id" value={p.id} />
-                                    <input type="hidden" name="visit_id" value={visit.id} />
-                                    <ConfirmButton message="Удалить это фото?" className="flex h-7 w-7 items-center justify-center rounded-full bg-black/70"><X size={16} /></ConfirmButton>
-                                </form>
-                            </div>
-                        ))}
-                    </div>
+                    <PhotoGallery photos={photos.map((p) => ({ id: p.id, src: `/api/photos/${p.id}` }))} visitId={visit.id} />
                 )}
                 <AddPhotos visitId={visit.id} />
             </section>

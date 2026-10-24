@@ -5,6 +5,7 @@ import { dateRu, km, rub, partsTotal } from '@/lib/format'
 import { MONEY } from '@/lib/features'
 import { NumberedText } from '@/components/numbered-text'
 import { splitItems } from '@/lib/items'
+import { PhotoGallery } from '@/components/photo-gallery'
 
 export const metadata: Metadata = { title: 'Отчёт о визите — Garaggio', robots: { index: false, follow: false } }
 
@@ -50,14 +51,7 @@ export default async function Report({ params }: { params: { token: string } }) 
             {photos.length > 0 && (
                 <section className="card p-4">
                     <h2 className="mb-2 font-black">Фото</h2>
-                    <div className="grid grid-cols-2 gap-2">
-                        {photos.map((p) => (
-                            <a key={p.id} href={`/r/${params.token}/photo/${p.id}`} target="_blank" rel="noreferrer" className="relative aspect-square overflow-hidden rounded-xl border border-line">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={`/r/${params.token}/photo/${p.id}`} alt="" loading="lazy" className="h-full w-full object-cover" />
-                            </a>
-                        ))}
-                    </div>
+                    <PhotoGallery cols={2} photos={photos.map((p) => ({ id: p.id, src: `/r/${params.token}/photo/${p.id}` }))} />
                 </section>
             )}
             {visit.notes && (
