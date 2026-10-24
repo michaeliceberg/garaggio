@@ -49,7 +49,7 @@ export async function buildOrders(days = 7): Promise<OrderCard[]> {
             sql<{ visit_date: string; works: string; recommendations: string }[]>`
                 SELECT visit_date::text, works, recommendations FROM visits WHERE car_id = ${car.id} ORDER BY visit_date DESC, id DESC LIMIT 1`,
         ])
-        const presets = (({ own, common }) => [...own, ...common])(workPresets(car.powertrain))
+        const presets = (({ own, common, suspension }) => [...own, ...common, ...suspension])(workPresets(car.powertrain))
         const lines = a.work.split('\n').map((s) => s.trim()).filter(Boolean)
         const wanted: string[] = []
         const unknown: string[] = []

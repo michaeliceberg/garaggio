@@ -7,6 +7,8 @@ import { getCarByOwnerToken, getVisits, getWishes } from '@/lib/data'
 import { dateRu, km, oilLine } from '@/lib/format'
 import { PlateBadge } from '@/components/plate'
 import { WishForm } from '../wish-form'
+import { NumberedText } from '@/components/numbered-text'
+import { splitItems } from '@/lib/items'
 
 export const metadata: Metadata = { title: 'Моя машина — Garaggio', robots: { index: false, follow: false } }
 export const dynamic = 'force-dynamic'
@@ -63,7 +65,7 @@ export default async function OwnerPage({ params }: { params: { token: string } 
             {visits.length === 0 && <p className="card p-4 text-center text-muted">Визитов пока не было.</p>}
             <ol className="relative flex flex-col gap-3 border-l-2 border-line pl-4">
                 {visits.map((v) => {
-                    const works = v.works.split('\n').map((l) => l.trim()).filter(Boolean)
+                    const works = splitItems(v.works)
                     return (
                         <li key={v.id} className="relative">
                             <span className="absolute -left-[23px] top-4 h-3 w-3 rounded-full border-2 border-bg bg-olive" />
@@ -72,8 +74,8 @@ export default async function OwnerPage({ params }: { params: { token: string } 
                                     <span className="font-bold">{dateRu(v.visit_date)}</span>
                                     <span className="text-sm text-muted">{km(v.mileage)}</span>
                                 </div>
-                                {works.length > 0 && <ul className="mt-2 flex flex-col gap-1 text-sm">{works.map((w, i) => <li key={i} className="flex gap-2"><span className="text-olive">✓</span>{w}</li>)}</ul>}
-                                {v.recommendations && <p className="mt-2 rounded-xl bg-gold/10 p-2 text-sm text-gold"><b>Рекомендации:</b> {v.recommendations}</p>}
+                                {works.length > 0 && <ol className="mt-2 flex flex-col gap-1 text-sm">{works.map((w, i) => <li key={i} className="flex gap-2"><span className="shrink-0 font-bold tabular-nums text-olive">{i + 1}.</span>{w}</li>)}</ol>}
+                                {v.recommendations && <div className="mt-2 rounded-xl bg-gold/10 p-2 text-sm text-gold"><b>Рекомендации</b><NumberedText text={v.recommendations} className="mt-1" /></div>}
                                 <div className="mt-2 flex items-center gap-1 text-sm font-semibold text-gold">{v.photo_count > 0 && <Camera size={14} />}Отчёт{v.photo_count > 0 ? ' с фото' : ''} →</div>
                             </a>
                         </li>

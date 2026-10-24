@@ -14,6 +14,7 @@ import { TgInvite } from '@/components/tg-invite'
 import { MONEY } from '@/lib/features'
 import { ttsEnabled } from '@/lib/tts'
 import { oilLine } from '@/lib/format'
+import { NumberedText } from '@/components/numbered-text'
 
 // Карточка машины: данные + вся история визитов лентой (свежие сверху).
 export default async function CarPage({ params }: { params: { id: string } }) {
@@ -84,7 +85,7 @@ export default async function CarPage({ params }: { params: { id: string } }) {
                                     <span className="font-bold">{dateRu(v.visit_date)}</span>
                                     <span className="text-sm text-muted">{km(v.mileage)}</span>
                                 </div>
-                                {v.works && <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-sm">{v.works}</p>}
+                                {v.works && <NumberedText text={v.works} className="mt-1 line-clamp-4 text-sm" />}
                                 {v.parts.length > 0 && <p className="mt-1 truncate text-sm text-muted">🔩 {v.parts.map((p) => p.name).join(', ')}</p>}
                                 <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
                                     {MONEY && total > 0 && <span className="font-semibold text-olive">{rub(total)}</span>}

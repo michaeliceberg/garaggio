@@ -152,6 +152,7 @@ export function ApptForm({ cars, initial }: { cars: CarLite[]; initial: Initial 
                     {presets.own.map((p) => chip(p.text, p.label))}
                 </div>
                 <div className="flex flex-wrap gap-1.5">{presets.common.map((p) => chip(p.text, p.label))}</div>
+                <div className="flex flex-wrap gap-1.5">{presets.suspension.map((p) => chip(p.text, p.label))}</div>
                 <textarea id="work" aria-label="Что делать" value={work} onChange={(e) => setWork(e.target.value)} rows={3} className="input" placeholder="Своими словами: стучит спереди справа…" />
             </Section>
 

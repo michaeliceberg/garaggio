@@ -10,6 +10,8 @@ import { compressPhoto, uploadPhoto } from '@/lib/photo-client'
 import { PhotoPicker, type PendingPhoto } from './photo-picker'
 import { VoiceInput } from './voice-input'
 import { Section } from './form-section'
+import { NumberedTextarea } from './numbered-textarea'
+import { cleanItems } from '@/lib/items'
 import { MONEY } from '@/lib/features'
 import type { VoiceParsed } from '@/lib/ai'
 import { fmtQty, itemLabel, matchStock, partFromItem, partQty, qtyText, unitOf, type StockItem } from '@/lib/stock-match'
@@ -117,8 +119,8 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId
         if (v.parts.length) setParts((prev) => [...prev.filter((p) => p.name.trim()), ...v.parts])
         if (v.labor_cost != null && !num(labor)) setLabor(String(v.labor_cost))
         if (v.mileage != null && !num(mileage)) onMileage(String(v.mileage))
-        if (v.notes) setNotes((prev) => [prev.trim(), v.notes].filter(Boolean).join('\n'))
-        if (v.recommendations) setRecs((prev) => [prev.trim(), v.recommendations].filter(Boolean).join('\n'))
+        if (v.notes) setNotes((prev) => cleanItems([prev, v.notes].join('\n')))
+        if (v.recommendations) setRecs((prev) => cleanItems([prev, v.recommendations].join('\n')))
     }
 
     // Быстрые кнопки «План на будущее»: срок от даты визита и пробег от текущего
@@ -146,7 +148,9 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId
                 <div className="flex flex-wrap gap-1.5">{presets.own.map((p) => <Chip key={p.text} p={p} />)}</div>
                 <div className="text-xs font-semibold text-muted">Колёса и тормоза</div>
                 <div className="flex flex-wrap gap-1.5">{presets.common.map((p) => <Chip key={p.text} p={p} />)}</div>
-                <textarea value={works} onChange={(e) => setWorks(e.target.value)} rows={3} className="input" placeholder="Что сделали — кнопками выше или своими словами" />
+                <div className="text-xs font-semibold text-muted">Подвеска и рулевое</div>
+                <div className="flex flex-wrap gap-1.5">{presets.suspension.map((p) => <Chip key={p.text} p={p} />)}</div>
+                <NumberedTextarea value={works} onChange={setWorks} rows={3} placeholder="Что сделали — кнопками выше или своими словами. Каждая работа — с новой строки (Enter) или через точку" />
 
                 <div className="mt-1 flex items-center justify-between border-t border-line pt-3">
                     <span className="text-sm font-bold">Детали</span>
@@ -202,8 +206,8 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId
             </Section>
 
             <Section icon={<MessageSquare size={18} />} title="Заметки и рекомендации" color="#9AA7B0">
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="input" placeholder="Заметки: нюансы, что заметили" />
-                <textarea value={recs} onChange={(e) => setRecs(e.target.value)} rows={2} className="input" placeholder="Рекомендации клиенту: скоро менять колодки…" />
+                <NumberedTextarea value={notes} onChange={setNotes} rows={2} placeholder="Заметки: нюансы, что заметили" />
+                <NumberedTextarea value={recs} onChange={setRecs} rows={2} placeholder="Рекомендации клиенту: скоро менять колодки…" />
                 <label className="flex items-center gap-3 rounded-xl bg-bg p-3">
                     <input type="checkbox" checked={declined} onChange={(e) => setDeclined(e.target.checked)} className="h-6 w-6 accent-tomato" />
                     <span className="text-sm">Клиент <b>отказался</b> от рекомендаций (сохранится с датой — на случай спора)</span>

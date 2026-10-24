@@ -6,6 +6,7 @@ import { Copy, Share2, Check, PackageCheck } from 'lucide-react'
 import type { OrderCard } from '@/lib/order'
 import { setPartsOrdered } from '@/app/actions'
 import { PlateBadge } from './plate'
+import { NumberedText } from './numbered-text'
 
 const dayRu = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('ru-RU', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'long' })
 const SOURCE = { car: '', other: 'как у другой машины — проверить', none: 'раньше не записывали' }
@@ -68,7 +69,7 @@ export function OrderList({ cards }: { cards: OrderCard[] }) {
                     ) : <p className="text-sm text-muted">По записи заказывать нечего (шиномонтаж, диагностика…).</p>}
                     {c.unknown.length > 0 && <p className="rounded-xl bg-gold/10 p-3 text-sm text-gold">❓ Уточнить: {c.unknown.join(', ')}</p>}
                     {c.wishes.length > 0 && <p className="rounded-xl bg-gold/10 p-3 text-sm"><b className="text-gold">📝 Клиент хочет:</b> {c.wishes.join('; ')}</p>}
-                    {c.recommendations && <p className="rounded-xl bg-bg p-3 text-sm"><b>Рекомендации прошлого визита:</b> {c.recommendations}</p>}
+                    {c.recommendations && <div className="rounded-xl bg-bg p-3 text-sm"><b>Рекомендации прошлого визита</b><NumberedText text={c.recommendations} className="mt-1" /></div>}
                 </section>
             ))}
             <div className="fixed inset-x-0 bottom-24 z-10 mx-auto flex max-w-2xl flex-col gap-1 px-4">

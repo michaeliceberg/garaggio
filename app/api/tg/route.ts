@@ -3,6 +3,7 @@ import { sql } from '@/lib/db'
 import crypto from 'node:crypto'
 import { formatPhone, km } from '@/lib/format'
 import { BOOKING_URL } from '@/lib/messages'
+import { splitItems } from '@/lib/items'
 import {
     addMaster, carFromPayload, tgApi, carsByPhone, contactKeyboard, getMasters, masterPayload, notifyMasters, sendToClient, tgSend,
 } from '@/lib/tg'
@@ -174,7 +175,7 @@ async function handle(m: TgMessage) {
             } else {
                 let token = v.share_token
                 if (!token) { token = crypto.randomBytes(12).toString('base64url'); await sql`UPDATE visits SET share_token = ${token} WHERE id = ${v.id}` }
-                const works = v.works.split('\n').filter(Boolean).slice(0, 4).map((w) => `• ${w}`).join('\n')
+                const works = splitItems(v.works).slice(0, 6).map((w, i) => `${i + 1}. ${w}`).join('\n')
                 parts.push(`🚗 ${carTitle(c)} — ${dateRu(v.visit_date)}${works ? `\n${works}` : ''}\nОтчёт с фото: https://garaggio.ru/r/${token}`)
             }
         }

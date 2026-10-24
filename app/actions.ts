@@ -10,6 +10,7 @@ import { checkPassword, endSession, requireAuth } from '@/lib/auth'
 import { parseVoiceText, type VoiceParsed } from '@/lib/ai'
 import { getMasters, notifyMasters, removeMaster, sendToClient, sendVoiceToClient, tgSend } from '@/lib/tg'
 import { synthesize } from '@/lib/tts'
+import { cleanItems } from '@/lib/items'
 import { apptCar, apptWho, conflicts, endTime } from '@/lib/appts'
 import { apptText } from '@/lib/messages'
 import { shortBrand } from '@/lib/car-dicts'
@@ -92,8 +93,8 @@ export async function saveVisit(input: {
     requireAuth()
     const parts = input.parts.filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), article: (p.article ?? '').trim(), price: Math.round(Number(p.price) || 0) }))
     const v = {
-        car_id: input.car_id, visit_date: input.visit_date, mileage: input.mileage, works: input.works.trim(), parts: sql.json(parts),
-        labor_cost: Math.round(input.labor_cost || 0), notes: input.notes.trim(), recommendations: input.recommendations.trim(),
+        car_id: input.car_id, visit_date: input.visit_date, mileage: input.mileage, works: cleanItems(input.works), parts: sql.json(parts),
+        labor_cost: Math.round(input.labor_cost || 0), notes: cleanItems(input.notes), recommendations: cleanItems(input.recommendations),
         declined: input.declined, paid: input.paid, next_date: input.next_date || null, next_mileage: input.next_mileage,
     }
     if (input.id) {

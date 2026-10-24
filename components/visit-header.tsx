@@ -3,6 +3,7 @@ import type { Car } from '@/lib/data'
 import { POWERTRAIN_LABEL } from '@/lib/format'
 import { PlateBadge } from './plate'
 import { dateRu, oilLine } from '@/lib/format'
+import { NumberedText } from './numbered-text'
 
 type Prev = { date: string | Date; text: string; declined: boolean }
 
@@ -24,7 +25,7 @@ export function VisitHeader({ car, title, wishes = [], prev }: { car: Car; title
                     {prev?.text && (
                         <div>
                             <div className="text-xs font-bold text-muted">Рекомендации с прошлого визита ({dateRu(prev.date)}){prev.declined ? ' · клиент тогда отказался' : ''}</div>
-                            <p className="whitespace-pre-wrap">{prev.text}</p>
+                            <NumberedText text={prev.text} />
                         </div>
                     )}
                     {wishes.length > 0 && (

@@ -14,6 +14,7 @@ import { PasswordDelete } from '@/components/password-delete'
 import { deletePhoto, deleteVisit } from '@/app/actions'
 import { getVisitMoves } from '@/lib/stock'
 import { fmtQty, itemLabel, unitOf } from '@/lib/stock-match'
+import { NumberedText } from '@/components/numbered-text'
 
 export default async function VisitPage({ params }: { params: { id: string } }) {
     const visit = await getVisit(Number(params.id))
@@ -34,7 +35,7 @@ export default async function VisitPage({ params }: { params: { id: string } }) 
                     </div>
                     <Link href={`/visits/${visit.id}/edit`} className="btn-ghost min-h-[44px] px-3" aria-label="Редактировать"><Pencil size={18} /></Link>
                 </div>
-                {visit.works && <p className="whitespace-pre-wrap">{visit.works}</p>}
+                {visit.works && <NumberedText text={visit.works} />}
                 {visit.parts.length > 0 && (
                     <table className="w-full text-sm">
                         <tbody>
@@ -59,10 +60,10 @@ export default async function VisitPage({ params }: { params: { id: string } }) 
                     </div>
                     <PaidToggle visitId={visit.id} paid={visit.paid} />
                 </>}
-                {visit.notes && <p className="whitespace-pre-wrap rounded-xl bg-bg p-3 text-sm">📝 {visit.notes}</p>}
+                {visit.notes && <div className="rounded-xl bg-bg p-3 text-sm"><b>📝 Заметки</b><NumberedText text={visit.notes} className="mt-1" /></div>}
                 {visit.recommendations && (
                     <div className={`rounded-xl p-3 text-sm ${visit.declined ? 'bg-gold/10 text-gold' : 'bg-bg'}`}>
-                        <b>Рекомендации:</b> {visit.recommendations}
+                        <b>Рекомендации</b><NumberedText text={visit.recommendations} className="mt-1" />
                         {visit.declined && <div className="mt-1 flex items-center gap-1 font-bold"><AlertTriangle size={14} />Клиент отказался ({dateRu(visit.visit_date)})</div>}
                     </div>
                 )}

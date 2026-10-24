@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { getCar, getPhotos, getVisitByToken } from '@/lib/data'
 import { dateRu, km, rub, partsTotal } from '@/lib/format'
 import { MONEY } from '@/lib/features'
+import { NumberedText } from '@/components/numbered-text'
+import { splitItems } from '@/lib/items'
 
 export const metadata: Metadata = { title: 'Отчёт о визите — Garaggio', robots: { index: false, follow: false } }
 
@@ -12,7 +14,7 @@ export default async function Report({ params }: { params: { token: string } }) 
     if (!visit) notFound()
     const [car, photos] = await Promise.all([getCar(visit.car_id), getPhotos(visit.id)])
     const partsSum = partsTotal(visit.parts)
-    const works = visit.works.split('\n').map((l) => l.trim()).filter(Boolean)
+    const works = splitItems(visit.works)
     return (
         <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-4 pb-10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -25,7 +27,7 @@ export default async function Report({ params }: { params: { token: string } }) 
             {works.length > 0 && (
                 <section className="card p-4">
                     <h2 className="mb-2 font-black">Что сделали</h2>
-                    <ul className="flex flex-col gap-1.5">{works.map((w, i) => <li key={i} className="flex gap-2"><span className="text-olive">✓</span>{w}</li>)}</ul>
+                    <ol className="flex flex-col gap-1.5">{works.map((w, i) => <li key={i} className="flex gap-2"><span className="shrink-0 font-bold tabular-nums text-olive">{i + 1}.</span>{w}</li>)}</ol>
                 </section>
             )}
             {(visit.parts.length > 0 || (MONEY && visit.labor_cost > 0)) && (
@@ -61,13 +63,13 @@ export default async function Report({ params }: { params: { token: string } }) 
             {visit.notes && (
                 <section className="card p-4">
                     <h2 className="mb-1 font-black">Заметки Маэстро</h2>
-                    <p className="whitespace-pre-wrap">{visit.notes}</p>
+                    <NumberedText text={visit.notes} />
                 </section>
             )}
             {visit.recommendations && (
                 <section className="card border-gold/40 p-4">
                     <h2 className="mb-1 font-black text-gold">Рекомендации Маэстро</h2>
-                    <p className="whitespace-pre-wrap">{visit.recommendations}</p>
+                    <NumberedText text={visit.recommendations} />
                 </section>
             )}
             {(visit.next_date || visit.next_mileage) && (
