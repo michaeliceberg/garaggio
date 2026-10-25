@@ -16,13 +16,19 @@ import { fmtQty, itemLabel, unitOf } from '@/lib/stock-match'
 import { NumberedText } from '@/components/numbered-text'
 import { PhotoGallery } from '@/components/photo-gallery'
 
-export default async function VisitPage({ params }: { params: { id: string } }) {
+export default async function VisitPage({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string } }) {
     const visit = await getVisit(Number(params.id))
     if (!visit) notFound()
     const [car, photos, moves] = await Promise.all([getCar(visit.car_id), getPhotos(visit.id), getVisitMoves(visit.id)])
     const partsSum = partsTotal(visit.parts)
     return (
         <>
+            {searchParams.saved && (
+                <div className="card flex items-center gap-3 border-olive/50 bg-olive/10 p-4">
+                    <span className="text-3xl">🤌</span>
+                    <div><b className="text-olive">Визит сохранён!</b><div className="text-sm text-cream/90">Пиздати фантастико, Маэстро! 🍝</div></div>
+                </div>
+            )}
             <Link href={`/cars/${visit.car_id}`} className="flex items-center gap-3">
                 <PlateBadge plate={car?.plate ?? ''} />
                 <span className="text-muted">{[car?.brand, car?.model].filter(Boolean).join(' ')}</span>

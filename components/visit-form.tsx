@@ -101,7 +101,7 @@ export function VisitForm({ carId, powertrain, visit, lastMileage, known, apptId
                 setBusy(`Загружаем фото ${i + 1} из ${photos.length}…`)
                 await uploadPhoto(id, await compressPhoto(photos[i].file), photos[i].kind)
             }
-            router.push(`/visits/${id}`)
+            router.push(`/visits/${id}${visit ? '' : '?saved=1'}`) // новый визит — с поздравлением на странице
             router.refresh()
         } catch {
             setError('Не получилось сохранить. Проверьте интернет и попробуйте ещё раз.')

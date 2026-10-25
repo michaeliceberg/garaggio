@@ -5,7 +5,7 @@ import { formatPhone, km } from '@/lib/format'
 import { BOOKING_URL } from '@/lib/messages'
 import { splitItems } from '@/lib/items'
 import {
-    addMaster, carFromPayload, tgApi, carsByPhone, contactKeyboard, getMasters, masterPayload, notifyMasters, sendToClient, tgSend,
+    addMaster, bookingLink, carFromPayload, tgApi, carsByPhone, contactKeyboard, getMasters, masterPayload, notifyMasters, sendToClient, tgSend,
 } from '@/lib/tg'
 
 // Обновления Telegram: их сюда отдаёт опросчик scripts/tg-poller.mjs (с секретом в заголовке).
@@ -17,7 +17,8 @@ type TgMessage = {
 
 // кнопка «Записаться онлайн» под сообщением — открывает страницу самозаписи
 const bookingButton = { inline_keyboard: [[{ text: '📅 Записаться онлайн', url: BOOKING_URL }]] }
-const sendBooking = (chatId: string) => tgSend(chatId, 'Выберите удобный день и время — Маэстро подтвердит запись 🤌', { reply_markup: bookingButton })
+// клиенту — личная ссылка: на странице записи уже будут его имя, телефон и машины
+const sendBooking = (chatId: string) => tgSend(chatId, 'Выберите удобный день и время — Маэстро подтвердит запись 🤌', { reply_markup: { inline_keyboard: [[{ text: '📅 Записаться онлайн', url: bookingLink(chatId) }]] } })
 
 // Постоянные кнопки клиента внизу чата (вместо клавиатуры)
 const B = { book: '📅 Записаться', due: '🔧 Когда ТО?', last: '📋 Последний визит', write: '💬 Написать Маэстро', page: '🚗 Моя страница' }

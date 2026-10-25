@@ -176,3 +176,13 @@ CREATE TABLE IF NOT EXISTS reminder_log (
 CREATE INDEX IF NOT EXISTS reminder_log_sent_idx ON reminder_log (sent_at DESC);
 -- ответ клиента на напоминание о записи: '' | yes (приедет) | move (просит перенести)
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS client_confirm text NOT NULL DEFAULT '';
+
+-- «Купить и сделать» — список гаража (докупить расходники, починить подъёмник…), раздел в «Ещё»
+CREATE TABLE IF NOT EXISTS garage_todos (
+    id         serial PRIMARY KEY,
+    text       text NOT NULL,
+    kind       text NOT NULL DEFAULT 'buy', -- buy (купить) | do (сделать)
+    done       boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    done_at    timestamptz
+);

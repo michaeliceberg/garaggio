@@ -57,7 +57,7 @@ export function endTime(start: string, duration: number) {
     return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
 }
 export const DURATIONS = [[30, '30 мин'], [60, '1 час'], [90, '1,5 часа'], [120, '2 часа'], [180, '3 часа'], [240, '4 часа'], [480, 'Весь день']] as const
-export const WORK_DAY = { from: '08:00', to: '22:00' } // Маэстро работает 7/7
+export const WORK_DAY = { from: '08:00', to: '18:00' } // часы записи, каждый день (решение Маэстро 25.10.2026)
 // Все машины коротко — для выбора в форме записи
 export type CarLite = { id: number; plate: string; brand: string; model: string; owner_name: string; owner_phone: string; powertrain: Powertrain }
 export async function carsLite() {
@@ -101,4 +101,12 @@ export async function ordersToDo() {
         SELECT count(*)::int AS n FROM appointments WHERE car_id IS NOT NULL AND status IN ('planned', 'pending') AND NOT parts_ordered
           AND day BETWEEN ${todayMsk()} AND ${to.toISOString().slice(0, 10)}`
     return n
+}
+// Ближайшая будущая запись каждой машины (для главной: записанные — сверху, с пометкой)
+export async function nextApptByCar() {
+    const rows = await sql<{ car_id: number; day: string; start_time: string; status: string; work: string }[]>`
+        SELECT DISTINCT ON (car_id) car_id, day::text AS day, to_char(start_time, 'HH24:MI') AS start_time, status, work
+        FROM appointments WHERE car_id IS NOT NULL AND status IN ('planned', 'pending') AND day >= ${todayMsk()}
+        ORDER BY car_id, day, start_time`
+    return new Map(rows.map((r) => [r.car_id, r]))
 }

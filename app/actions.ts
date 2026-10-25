@@ -368,3 +368,26 @@ export async function sendReminderSample() {
     }
     return null
 }
+
+// «Купить и сделать» — список гаража
+export async function addTodo(text: string, kind: 'buy' | 'do') {
+    requireAuth()
+    const items = cleanItems(text).split('\n').filter(Boolean).slice(0, 30) // можно сразу несколько: через Enter или точку
+    for (const t of items) await sql`INSERT INTO garage_todos (text, kind) VALUES (${t.slice(0, 200)}, ${kind === 'do' ? 'do' : 'buy'})`
+    revalidatePath('/todo')
+}
+export async function toggleTodo(id: number) {
+    requireAuth()
+    await sql`UPDATE garage_todos SET done = NOT done, done_at = CASE WHEN done THEN NULL ELSE now() END WHERE id = ${id}`
+    revalidatePath('/todo')
+}
+export async function deleteTodo(id: number) {
+    requireAuth()
+    await sql`DELETE FROM garage_todos WHERE id = ${id}`
+    revalidatePath('/todo')
+}
+export async function clearDoneTodos() {
+    requireAuth()
+    await sql`DELETE FROM garage_todos WHERE done`
+    revalidatePath('/todo')
+}

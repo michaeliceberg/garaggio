@@ -1,7 +1,7 @@
 import 'server-only'
 import crypto from 'node:crypto'
 import { sql } from './db'
-import { phoneDigits } from './messages'
+import { BOOKING_URL, phoneDigits } from './messages'
 
 // Telegram-бот Garaggio: клиенты подписываются (ссылка/QR машины или номер телефона),
 // получают напоминания и отчёты, пишут мастеру; мастер отвечает из приложения или ответом в Telegram.
@@ -29,6 +29,12 @@ export const noKeyboard = { remove_keyboard: true }
 const sign = (v: string) => crypto.createHmac('sha256', process.env.SESSION_SECRET!).update('tg:' + v).digest('base64url').slice(0, 12)
 export const carPayload = (carId: number) => `c${carId}_${sign('car' + carId)}`
 export const masterPayload = () => `m_${sign('master')}`
+// Личная ссылка на самозапись из бота: /zapis?k=<чат>.<подпись> — имя, телефон и машины клиента подставятся сами
+export const bookingLink = (chatId: string | number) => `${BOOKING_URL}?k=${chatId}.${sign('book' + chatId)}`
+export function chatFromBookingKey(k?: string) {
+    const m = /^(-?\d+)\.([\w-]+)$/.exec(k ?? '')
+    return m && m[2] === sign('book' + m[1]) ? m[1] : null
+}
 export const carLink = (carId: number) => `https://t.me/${BOT}?start=${carPayload(carId)}`
 export const masterLink = () => `https://t.me/${BOT}?start=${masterPayload()}`
 export const botLink = () => `https://t.me/${BOT}`

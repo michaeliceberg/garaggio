@@ -2,14 +2,19 @@ import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { LiveSearch } from '@/components/live-search'
 import { searchCars, getDue } from '@/lib/data'
-import { getDay, todayMsk, apptCar, apptWho, pendingAppts, ordersToDo } from '@/lib/appts'
+import { getDay, todayMsk, apptCar, apptWho, pendingAppts, ordersToDo, nextApptByCar } from '@/lib/appts'
 import { dateRu } from '@/lib/format'
 import { PlateBadge } from '@/components/plate'
 
-// Главная: поиск по номеру / имени / телефону / марке и список машин (свежие визиты — сверху).
+// Главная: поиск по номеру / имени / телефону / марке и список машин.
+// Машины с записью — сверху, от ближайшей записи к дальней, с зелёной пометкой «📅 Завтра в 10:00»; дальше — свежие визиты.
 export default async function Home({ searchParams }: { searchParams: { q?: string } }) {
     const q = searchParams.q ?? ''
-    const [cars, due, today, pending, toOrder] = await Promise.all([searchCars(q), q ? Promise.resolve([]) : getDue(), q ? Promise.resolve([]) : getDay(todayMsk()), q ? Promise.resolve([]) : pendingAppts(), q ? Promise.resolve(0) : ordersToDo()])
+    const [found, due, today, pending, toOrder, nextAppt] = await Promise.all([searchCars(q), q ? Promise.resolve([]) : getDue(), q ? Promise.resolve([]) : getDay(todayMsk()), q ? Promise.resolve([]) : pendingAppts(), q ? Promise.resolve(0) : ordersToDo(), nextApptByCar()])
+    const key = (id: number) => { const a = nextAppt.get(id); return a ? `${a.day} ${a.start_time}` : '' }
+    const cars = q ? found : [...found.filter((c) => nextAppt.has(c.id)).sort((a, b) => key(a.id).localeCompare(key(b.id))), ...found.filter((c) => !nextAppt.has(c.id))]
+    const tomorrow = (() => { const d = new Date(todayMsk() + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10) })()
+    const whenText = (day: string) => day === todayMsk() ? 'Сегодня' : day === tomorrow ? 'Завтра' : new Date(day + 'T12:00:00Z').toLocaleDateString('ru-RU', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' })
     const waiting = today.filter((a) => a.status === 'planned')
     const byPhone = q.replace(/\D/g, '').length >= 3 // ищут по цифрам — показываем телефон в строке
     return (
@@ -52,18 +57,27 @@ export default async function Home({ searchParams }: { searchParams: { q?: strin
                 </div>
             ) : (
                 <ul className="flex flex-col gap-2">
-                    {cars.map((c) => (
+                    {cars.map((c) => {
+                        const a = nextAppt.get(c.id)
+                        return (
                         <li key={c.id}>
-                            <Link href={`/cars/${c.id}`} className="card flex items-center gap-3 p-3">
+                            <Link href={`/cars/${c.id}`} className={`card flex items-center gap-3 p-3 ${a ? 'border-basil/60 bg-basil/10' : ''}`}>
                                 <PlateBadge plate={c.plate} />
                                 <div className="min-w-0 flex-1">
                                     <div className="truncate font-bold">{[c.brand, c.model].filter(Boolean).join(' ') || 'Без марки'}</div>
-                                    <div className="truncate text-sm text-muted">{c.owner_name || 'Владелец не указан'}{byPhone && c.owner_phone ? ` · ${c.owner_phone}` : c.last_visit ? ` · был ${dateRu(c.last_visit)}` : ''}</div>
+                                    <div className="truncate text-sm text-muted">{c.owner_name || 'Владелец не указан'}{byPhone && c.owner_phone ? ` · ${c.owner_phone}` : !a && c.last_visit ? ` · был ${dateRu(c.last_visit)}` : ''}</div>
+                                    {a && (
+                                        <div className="mt-0.5 flex items-center gap-1.5 truncate text-sm font-semibold text-olive">
+                                            <span className={`h-2 w-2 shrink-0 rounded-full ${a.status === 'pending' ? 'bg-gold' : 'bg-olive'}`} />
+                                            {whenText(a.day)} в {a.start_time}{a.status === 'pending' ? ' · заявка' : ''}{a.work ? ` · ${a.work.split('\n')[0]}` : ''}
+                                        </div>
+                                    )}
                                 </div>
                                 <ChevronRight className="shrink-0 text-muted" />
                             </Link>
                         </li>
-                    ))}
+                        )
+                    })}
                 </ul>
             )}
         </>

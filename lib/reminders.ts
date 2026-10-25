@@ -5,6 +5,7 @@ import { todayMsk } from './appts'
 import { BOOKING_URL } from './messages'
 import { km } from './format'
 import { notifyMasters, sendToClient, tgEnabled } from './tg'
+import { bookingLink } from './tg'
 
 // Автонапоминания ботом (запускает cron каждый час: /api/cron/reminders).
 // • appt — накануне записи (с 12:00 по Москве), кнопки «Приеду» / «Перенести».
@@ -74,7 +75,7 @@ export async function planReminders(): Promise<PlannedReminder[]> {
         const why = c.km_left != null && c.km_left <= 700 && (c.days_left == null || c.days_left > 3)
             ? (c.est_mileage ? `пробег уже около ${km(c.est_mileage)}` : 'по пробегу')
             : c.next_date ? (c.days_left! <= 0 ? `срок был ${dayShort(iso(c.next_date))}` : `до ${dayShort(iso(c.next_date))}`) : ''
-        const base = { carId: c.id, chatId: String(c.tg_chat_id), car: `${carName(c)} ${c.plate}`.trim(), owner: c.owner_name, buttons: dueButtons }
+        const base = { carId: c.id, chatId: String(c.tg_chat_id), car: `${carName(c)} ${c.plate}`.trim(), owner: c.owner_name, buttons: [[{ text: '📅 Записаться онлайн', url: bookingLink(String(c.tg_chat_id)) }]] as Btn[][] }
         const first = firstSent.get(`due:${cycle}`)
         if (!first) out.push({ ...base, kind: 'due', ref: `due:${cycle}`, when: 'пора на ТО', text: dueReminderText(c.owner_name, carName(c), why) })
         else if (Date.now() - new Date(first).getTime() >= 14 * 86400_000 && !sent.has(`due2:${cycle}`))

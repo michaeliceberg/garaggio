@@ -13,7 +13,7 @@ const fmt = (day: string, o: Intl.DateTimeFormatOptions) => new Date(day + 'T12:
 // Шутки Garaggio по московскому времени: вечером маэстро ужинает, ночью спит, рано утром пьёт эспрессо
 const mskHour = () => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }).format(new Date())) % 24
 type Mood = 'dinner' | 'night' | 'morning' | null
-const moodNow = (): Mood => { const h = mskHour(); return h >= 20 && h < 22 ? 'dinner' : h >= 22 || h < 6 ? 'night' : h < 8 ? 'morning' : null }
+const moodNow = (): Mood => { const h = mskHour(); return h >= 18 && h < 22 ? 'dinner' : h >= 22 || h < 6 ? 'night' : h < 8 ? 'morning' : null }
 const MOOD: Record<Exclude<Mood, null>, { icon: string; title: string; text: string }> = {
     dinner: { icon: '🍕🍷', title: 'Маэстро ужинает', text: 'Маэстро моет руки, достаёт пиццу «Маргарита» и наливает бокал Кьянти. На сегодня Garaggio закрывается — а завтра с 8:00 ждём вас! Записаться можно прямо сейчас.' },
     night: { icon: '🌙😴', title: 'Тссс… Маэстро спит', text: 'И видит во сне идеальный развал-схождение. Garaggio откроется в 8:00 — а записаться можно уже сейчас, утром Маэстро всё увидит и подтвердит.' },
@@ -23,13 +23,22 @@ const MOOD: Record<Exclude<Mood, null>, { icon: string; title: string; text: str
 const dur = (m: number) => (m % 60 ? `${Math.floor(m / 60) ? `${Math.floor(m / 60)},5 ч` : `${m} мин`}` : `${m / 60} ч`)
 
 // Самозапись по шагам на одной странице: что сделать → день и время (только свободное) → кто вы → «Записаться».
-export function BookingForm({ days, works }: { days: string[]; works: { id: string; label: string; minutes: number }[] }) {
+export type Me = { name: string; phone: string; cars: { id: number; brand: string; model: string; plate: string }[] }
+
+export function BookingForm({ days, works, me }: { days: string[]; works: { id: string; label: string; minutes: number }[]; me?: Me | null }) {
     const [workId, setWorkId] = useState('to')
     const [comment, setComment] = useState('')
     const [day, setDay] = useState(days[0])
     const [slots, setSlots] = useState<string[] | null>(null)
     const [time, setTime] = useState<string | null>(null)
-    const [name, setName] = useState('')
+    const [name, setName] = useState(me?.name ?? '')
+    // машины клиента (личная ссылка из бота): одна — подставляем сразу, несколько — выбор кнопками
+    const [carPick, setCarPick] = useState<number | 'other' | null>(me?.cars.length ? me.cars[0].id : null)
+    const fillCar = (c?: { brand: string; model: string; plate: string }) => {
+        for (const [field, value] of [['brand', c?.brand ?? ''], ['model', c?.model ?? ''], ['plate', c?.plate ?? '']] as const)
+            window.dispatchEvent(new CustomEvent('garaggio:fill', { detail: { field, value } }))
+    }
+    useEffect(() => { if (me?.cars.length) fillCar(me.cars[0]) }, []) // eslint-disable-line react-hooks/exhaustive-deps
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [done, setDone] = useState(false)
@@ -138,9 +147,24 @@ export function BookingForm({ days, works }: { days: string[]; works: { id: stri
             <Section icon={<User size={18} />} title="Кто приедет" color="#F2C35B">
                 <div className="grid grid-cols-2 gap-3">
                     <div className="min-w-0"><label className="label" htmlFor="bname">Имя</label><input id="bname" lang="ru" autoCapitalize="words" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} className="input" placeholder="Андрей" autoComplete="given-name" /></div>
-                    <PhoneInput />
+                    <PhoneInput defaultValue={me?.phone} />
                 </div>
                 {/* марка и модель — те же подсказки, что в карточке машины («то» → Toyota, потом Camry, RAV4…) */}
+                {me && me.cars.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                        <span className="label !mb-0">Ваша машина</span>
+                        <div className="flex flex-wrap gap-1.5">
+                            {me.cars.map((c) => (
+                                <button key={c.id} type="button" onClick={() => { setCarPick(c.id); fillCar(c) }}
+                                    className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${carPick === c.id ? 'border-basil bg-basil text-white' : 'border-line text-white/85'}`}>
+                                    {carPick === c.id ? '✓ ' : ''}{[c.brand, c.model].filter(Boolean).join(' ') || 'Машина'}{c.plate ? ` · ${c.plate}` : ''}
+                                </button>
+                            ))}
+                            <button type="button" onClick={() => { setCarPick('other'); fillCar() }}
+                                className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${carPick === 'other' ? 'border-gold bg-gold/15 text-gold' : 'border-line text-muted'}`}>Другая машина</button>
+                        </div>
+                    </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                     <BrandInput />
                     <ModelInput known={[]} />

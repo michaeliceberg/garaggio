@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronUp, Package, ShoppingCart, Wallet, LogOut, X, BellRing } from 'lucide-react'
+import { ChevronUp, Package, ShoppingCart, Wallet, LogOut, X, BellRing, ClipboardList } from 'lucide-react'
 import { logout } from '@/app/actions'
 
 // «Ещё»: ушко над нижней панелью справа, под большой палец (Склад — справа, под палец правши): редкие разделы плитками (нижняя панель — только то, что нужно каждый день).
@@ -29,6 +29,7 @@ export function AppMenu({ money }: { money: boolean }) {
     const TILES = [
         { href: '/order', icon: ShoppingCart, label: 'Что заказать', hint: 'к ТО по записям', color: '#F2C35B' },
         { href: '/stock', icon: Package, label: 'Склад', hint: 'масло и фильтры', color: '#8DB255' },
+        { href: '/todo', icon: ClipboardList, label: 'Купить и сделать', hint: 'список гаража', color: '#E5533D' },
         { href: '/reminders', icon: BellRing, label: 'Напоминания', hint: 'бот пишет сам', color: '#2AABEE' },
         ...(money ? [{ href: '/money', icon: Wallet, label: 'Деньги', hint: 'долги и выручка', color: '#53ADEF' }] : []),
     ]
