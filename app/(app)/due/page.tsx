@@ -14,7 +14,7 @@ export default async function DuePage() {
         <>
             <h1 className="text-2xl font-black">Пора на ТО</h1>
             <p className="text-sm text-muted">Срок в ближайшие 2 недели или уже прошёл. Пробег прикидываем по тому, сколько машина ездит между визитами.</p>
-            {due.length === 0 && <p className="card p-6 text-center text-muted">Сейчас звать некого — пиздати фантастико! 🤌</p>}
+            {due.length === 0 && <p className="card p-6 text-center text-muted">Сейчас звать некого —<br />пиздати фантастико! 🤌</p>}
             <ul className="flex flex-col gap-2">
                 {due.map((c) => {
                     const overdue = (c.days_left != null && c.days_left < 0) || (c.km_left != null && c.km_left < 0)

@@ -66,13 +66,13 @@ export function PlateInput({ name = 'plate', defaultValue = '', label = 'Гос�
             <input type="hidden" name={name} value={v} id={name} />
             {/* сам номер — как настоящий знак: белая плашка, рамка, регион справа */}
             <button ref={box} type="button" onClick={() => setOpen((o) => !o)} onKeyDown={onKey} aria-label={`${label}: ${v || 'не указан'}`}
-                className={`flex w-full items-stretch overflow-hidden rounded-xl border-2 bg-white font-mono text-2xl font-black text-black transition ${open ? 'border-gold ring-2 ring-gold/30' : 'border-black/80'}`}>
+                className={`flex w-full items-stretch overflow-hidden rounded-xl border-2 bg-white font-plate text-[30px] text-black transition ${open ? 'border-gold ring-2 ring-gold/30' : 'border-black/80'}`}>
                 <span className="flex flex-1 items-center justify-center gap-[2px] px-2 py-2 tracking-wider">
                     {TEMPLATE.slice(0, 6).split('').map((t, i) => <Slot key={i} ch={v[i]} hint={t} active={open && v.length === i} gap={i === 0 || i === 3} />)}
                 </span>
                 <span className="flex min-w-[64px] flex-col items-center justify-center border-l-2 border-black/80 px-1.5 leading-none">
                     <span className="flex text-xl">{[6, 7, 8].map((i) => <Slot key={i} ch={v[i]} hint={i === 8 ? '' : '0'} active={open && v.length === i} />)}</span>
-                    <span className="mt-0.5 text-[9px] font-bold tracking-wide">RUS</span>
+                    <span className="mt-0.5 flex items-center gap-1 text-[9px] font-bold tracking-wide">RUS<span className="inline-flex h-[8px] w-[12px] flex-col overflow-hidden border-[0.5px] border-black/40" aria-hidden><span className="flex-1 bg-white" /><span className="flex-1 bg-[#0039A6]" /><span className="flex-1 bg-[#D52B1E]" /></span></span>
                 </span>
             </button>
 
