@@ -5,7 +5,7 @@ import { formatPhone, km } from '@/lib/format'
 import { BOOKING_URL } from '@/lib/messages'
 import { splitItems } from '@/lib/items'
 import {
-    addMaster, bookingLink, carFromPayload, tgApi, carsByPhone, contactKeyboard, getMasters, masterPayload, notifyMasters, sendToClient, tgSend,
+    addMaster, bookingLink, carFromPayload, tgApi, carsByPhone, contactKeyboard, getMasters, masterPayload, mediaOf, notifyMasters, sendToClient, tgCopy, tgSend,
 } from '@/lib/tg'
 import { recordConsent } from '@/lib/consent'
 
@@ -18,6 +18,8 @@ type TgUser = { id: number; first_name?: string; last_name?: string; username?: 
 type TgMessage = {
     message_id: number; from?: TgUser; chat: { id: number; type: string }; text?: string; caption?: string
     contact?: { phone_number: string; user_id?: number }; reply_to_message?: { message_id: number }
+    photo?: { file_id: string }[]; voice?: { file_id: string }; audio?: { file_id: string }; video?: { file_id: string }
+    video_note?: { file_id: string }; document?: { file_id: string; file_name?: string }; sticker?: { file_id: string; emoji?: string }
 }
 
 // кнопка «Записаться онлайн» под сообщением — открывает страницу самозаписи
@@ -106,14 +108,23 @@ async function handle(m: TgMessage) {
             await tgSend(chatId, `Вы подключены как Маэстро 🤌 Сюда приходят сообщения клиентов и заявки на запись.\n\n• Ответить клиенту — нажмите «Ответить» (Reply) на его сообщение\n• /zapis — ссылка для самозаписи клиентов\n• Всё остальное — в приложении: https://garaggio.ru`)
             return
         }
-        if (!text) { await tgSend(chatId, 'Пока пересылаю клиентам только текст.'); return }
+        const media = mediaOf(m)
+        if (!text && !media) { await tgSend(chatId, 'Такое пока не умею переслать клиенту — отправьте текст, фото, голосовое или файл.'); return }
         try {
-            await sendToClient(orig.chat_id, text)
+            if (media) {
+                // фото, голосовое или файл от мастера — копируем клиенту как есть (подпись сохраняется)
+                try { await tgCopy(orig.chat_id, chatId, m.message_id) }
+                catch (e) {
+                    if ((e as { code?: number }).code === 403) { await sql`UPDATE cars SET tg_chat_id = NULL WHERE tg_chat_id = ${orig.chat_id}`; throw new Error('Клиент отключил бота — подписка снята') }
+                    throw e
+                }
+                await sql`INSERT INTO tg_messages (chat_id, out, text, seen, media_kind, file_id) VALUES (${orig.chat_id}, true, ${text || media.label}, true, ${media.kind}, ${media.fileId})`
+            } else await sendToClient(orig.chat_id, text)
             revalidatePath('/inbox')
             // остальные мастера видят, что клиенту уже ответили
             const [c] = await sql<{ name: string }[]>`SELECT name FROM tg_chats WHERE chat_id = ${orig.chat_id}`
             const me = masters.find((x) => x.chat_id === chatId)?.name || 'Маэстро'
-            await notifyMasters(`↪️ ${me} ответил${c?.name ? ` (${c.name})` : ''}:\n${text}`, { except: chatId })
+            await notifyMasters(`↪️ ${me} ответил${c?.name ? ` (${c.name})` : ''}:\n${text || media?.label || ''}`, { except: chatId })
         } catch (e) { await tgSend(chatId, `Не отправилось: ${(e as Error).message}`) }
         return
     }
@@ -217,11 +228,12 @@ async function handle(m: TgMessage) {
     }
 
     // Обычное сообщение клиента → в «Ящик» и копией мастеру в Telegram
-    const body = text || '[фото, голосовое или файл — откройте Telegram]'
+    const media = mediaOf(m)
+    const body = media ? [media.label, text].filter(Boolean).join('\n') : text || '[сообщение без текста]'
     const [cars] = await sql<{ list: string }[]>`
         SELECT coalesce(string_agg(trim(brand || ' ' || model || ' ' || plate), ', '), '') AS list FROM cars WHERE tg_chat_id = ${chatId}`
     const who = [name, cars.list].filter(Boolean).join(' · ') || 'Клиент'
-    await sql`INSERT INTO tg_messages (chat_id, out, text) VALUES (${chatId}, false, ${body})`
-    await notifyMasters(`💬 ${who}:\n${body}`, { clientChat: chatId })
+    await sql`INSERT INTO tg_messages (chat_id, out, text, media_kind, file_id) VALUES (${chatId}, false, ${body}, ${media?.kind ?? ''}, ${media?.fileId ?? ''})`
+    await notifyMasters(`💬 ${who}:\n${body}`, { clientChat: chatId, copy: media ? { fromChat: chatId, messageId: m.message_id } : undefined })
     revalidatePath('/inbox')
 }

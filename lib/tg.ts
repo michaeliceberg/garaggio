@@ -55,14 +55,35 @@ export async function removeMaster(chatId: string) {
     await sql`DELETE FROM tg_masters WHERE chat_id = ${chatId}`
 }
 // Разослать всем мастерам (кроме except). clientChat — это копия сообщения клиента: запоминаем, чтобы Reply ушёл ему.
-export async function notifyMasters(text: string, opts: { except?: string; clientChat?: string } = {}) {
+// copy — само сообщение клиента (фото, голосовое, файл): копируем его мастеру под текстом-заголовком.
+export async function notifyMasters(text: string, opts: { except?: string; clientChat?: string; copy?: { fromChat: string; messageId: number } } = {}) {
     for (const m of await getMasters()) {
         if (m.chat_id === opts.except) continue
         try {
-            const sent = await tgSend(m.chat_id, text)
-            if (opts.clientChat) await sql`INSERT INTO tg_relay (master_chat, master_msg_id, client_chat) VALUES (${m.chat_id}, ${sent.message_id}, ${opts.clientChat}) ON CONFLICT DO NOTHING`
+            const ids = [(await tgSend(m.chat_id, text)).message_id]
+            if (opts.copy) {
+                try { ids.push((await tgCopy(m.chat_id, opts.copy.fromChat, opts.copy.messageId)).message_id) }
+                catch (e) { console.error('tg copy', m.chat_id, e); await tgSend(m.chat_id, '⚠️ Не удалось переслать вложение — откройте «Ящик» в приложении.') }
+            }
+            if (opts.clientChat) for (const id of ids) await sql`INSERT INTO tg_relay (master_chat, master_msg_id, client_chat) VALUES (${m.chat_id}, ${id}, ${opts.clientChat}) ON CONFLICT DO NOTHING`
         } catch (e) { console.error('tg master', m.chat_id, e) }
     }
+}
+export const tgCopy = (toChat: string | number, fromChat: string | number, messageId: number) =>
+    tgApi<{ message_id: number }>('copyMessage', { chat_id: toChat, from_chat_id: fromChat, message_id: messageId })
+
+// Вложение сообщения Telegram: вид, file_id и подпись для «Ящика»
+export type TgMedia = { kind: string; fileId: string; label: string }
+type F = { file_id: string }
+export function mediaOf(m: { photo?: F[]; voice?: F; audio?: F; video?: F; video_note?: F; document?: F & { file_name?: string }; sticker?: F & { emoji?: string } }): TgMedia | null {
+    if (m.photo?.length) return { kind: 'photo', fileId: m.photo[m.photo.length - 1].file_id, label: '📷 Фото' }
+    if (m.voice) return { kind: 'voice', fileId: m.voice.file_id, label: '🎤 Голосовое' }
+    if (m.audio) return { kind: 'audio', fileId: m.audio.file_id, label: '🎵 Аудио' }
+    if (m.video) return { kind: 'video', fileId: m.video.file_id, label: '🎬 Видео' }
+    if (m.video_note) return { kind: 'video_note', fileId: m.video_note.file_id, label: '⭕ Видеосообщение' }
+    if (m.document) return { kind: 'document', fileId: m.document.file_id, label: `📎 ${m.document.file_name || 'Файл'}` }
+    if (m.sticker) return { kind: 'sticker', fileId: m.sticker.file_id, label: `${m.sticker.emoji || '🙂'} Стикер` }
+    return null
 }
 
 // Машины клиента по номеру телефона (сравниваем только цифры, 8… = 7…)
@@ -105,8 +126,8 @@ export async function getThread(chatId: string) {
     const [chat] = await sql<{ chat_id: string; name: string; username: string; phone: string }[]>`
         SELECT chat_id::text, name, username, phone FROM tg_chats WHERE chat_id = ${chatId}`
     if (!chat) return null
-    const messages = await sql<{ id: number; out: boolean; text: string; created_at: string }[]>`
-        SELECT id, out, text, created_at FROM (SELECT * FROM tg_messages WHERE chat_id = ${chatId} ORDER BY id DESC LIMIT 200) t ORDER BY id`
+    const messages = await sql<{ id: number; out: boolean; text: string; created_at: string; media_kind: string }[]>`
+        SELECT id, out, text, created_at, media_kind FROM (SELECT * FROM tg_messages WHERE chat_id = ${chatId} ORDER BY id DESC LIMIT 200) t ORDER BY id`
     const cars = await sql<{ id: number; plate: string; brand: string; model: string }[]>`
         SELECT id, plate, brand, model FROM cars WHERE tg_chat_id = ${chatId} ORDER BY id`
     return { ...chat, messages, cars }

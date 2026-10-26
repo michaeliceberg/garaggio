@@ -200,3 +200,7 @@ CREATE TABLE IF NOT EXISTS pd_consents (
     created_at     timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS pd_consents_phone_idx ON pd_consents (phone);
+
+-- Фото, голосовые, видео и файлы в переписке: вид и file_id в Telegram (сам файл не храним, отдаём через /api/tg-file/<id>)
+ALTER TABLE tg_messages ADD COLUMN IF NOT EXISTS media_kind text NOT NULL DEFAULT ''; -- photo | voice | audio | video | video_note | document | sticker
+ALTER TABLE tg_messages ADD COLUMN IF NOT EXISTS file_id text NOT NULL DEFAULT '';

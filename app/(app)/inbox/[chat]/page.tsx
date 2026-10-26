@@ -31,6 +31,7 @@ export default async function ThreadPage({ params }: { params: { chat: string } 
                 {t.messages.length === 0 && <li className="text-center text-sm text-muted">Сообщений пока нет.</li>}
                 {t.messages.map((m) => (
                     <li key={m.id} className={`max-w-[85%] rounded-2xl px-3 py-2 ${m.out ? 'self-end bg-[#2AABEE]/20' : 'self-start bg-card'}`}>
+                        {m.media_kind && <Media id={m.id} kind={m.media_kind} />}
                         <p className="whitespace-pre-wrap break-words text-sm">{m.text}</p>
                         <p className="mt-1 text-right text-[11px] text-muted">{time(m.created_at)}</p>
                     </li>
@@ -39,4 +40,15 @@ export default async function ThreadPage({ params }: { params: { chat: string } 
             <TgReply chatId={t.chat_id} />
         </>
     )
+}
+
+// Вложение в переписке: фото и стикер — картинкой, голосовое — плеером, видео — видео, остальное — ссылкой
+function Media({ id, kind }: { id: number; kind: string }) {
+    const src = `/api/tg-file/${id}`
+    if (kind === 'photo' || kind === 'sticker')
+        // eslint-disable-next-line @next/next/no-img-element
+        return <a href={src} target="_blank"><img src={src} alt="" className="mb-1 max-h-72 rounded-xl" loading="lazy" /></a>
+    if (kind === 'voice' || kind === 'audio') return <audio src={src} controls preload="none" className="mb-1 w-64 max-w-full" />
+    if (kind === 'video' || kind === 'video_note') return <video src={src} controls preload="none" className="mb-1 max-h-72 rounded-xl" />
+    return <a href={src} target="_blank" className="mb-1 block text-sm font-semibold underline">Открыть файл</a>
 }
