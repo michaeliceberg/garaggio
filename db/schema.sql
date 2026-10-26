@@ -186,3 +186,17 @@ CREATE TABLE IF NOT EXISTS garage_todos (
     created_at timestamptz NOT NULL DEFAULT now(),
     done_at    timestamptz
 );
+
+-- Согласия на обработку персональных данных (152-ФЗ): кто, где и на какую редакцию политики согласился.
+-- source: booking (самозапись на сайте) | bot_contact (поделился номером в боте) | bot_car (подписался по ссылке машины)
+CREATE TABLE IF NOT EXISTS pd_consents (
+    id             serial PRIMARY KEY,
+    source         text NOT NULL,
+    phone          text NOT NULL DEFAULT '',
+    name           text NOT NULL DEFAULT '',
+    tg_chat_id     bigint,
+    appointment_id int REFERENCES appointments(id) ON DELETE SET NULL,
+    policy_version text NOT NULL,
+    created_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS pd_consents_phone_idx ON pd_consents (phone);

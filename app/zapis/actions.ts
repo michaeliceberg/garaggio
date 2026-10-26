@@ -6,6 +6,7 @@ import { formatPhone, normPlate } from '@/lib/format'
 import { freeSlots, todayMsk, SELF_WORKS, SELF_DAYS_AHEAD } from '@/lib/appts'
 import { carsByPhone, notifyMasters, tgEnabled } from '@/lib/tg'
 import { phoneDigits } from '@/lib/messages'
+import { recordConsent } from '@/lib/consent'
 
 // Самозапись клиентов — открыто без входа. Клиент видит только свободное время, чужих записей не видит.
 const validDay = (day: string) => {
@@ -21,11 +22,12 @@ export async function getSlots(day: string, workId: string) {
     return freeSlots(day, workOf(workId).minutes)
 }
 
-export async function book(input: { day: string; time: string; workId: string; comment: string; name: string; phone: string; car: string; plate?: string; website?: string }) {
+export async function book(input: { day: string; time: string; workId: string; comment: string; name: string; phone: string; car: string; plate?: string; website?: string; consent?: boolean }) {
     if (input.website) return { ok: true } // ловушка для ботов: скрытое поле заполняют только программы
     const name = input.name.trim().slice(0, 60), car = input.car.trim().slice(0, 60), comment = input.comment.trim().slice(0, 300)
     const plate = normPlate(input.plate ?? '').slice(0, 12)
     const digits = phoneDigits(input.phone)
+    if (!input.consent) return { error: 'Отметьте согласие на обработку персональных данных' }
     if (!name) return { error: 'Напишите, как вас зовут' }
     if (digits.length < 11) return { error: 'Проверьте номер телефона' }
     if (!validDay(input.day) || !/^\d{2}:\d{2}$/.test(input.time)) return { error: 'Выберите день и время' }
@@ -47,6 +49,7 @@ export async function book(input: { day: string; time: string; workId: string; c
         INSERT INTO appointments (car_id, client_name, client_phone, client_car, client_plate, day, start_time, duration_min, work, status, source)
         VALUES (${car_id ?? null}, ${name}, ${phone}, ${car}, ${plate}, ${input.day}, ${input.time}, ${work.minutes}, ${workText}, 'pending', 'client')
         RETURNING id`
+    await recordConsent({ source: 'booking', phone, name, appointmentId: a.id })
     revalidatePath('/calendar'); revalidatePath('/')
 
     if (tgEnabled()) {

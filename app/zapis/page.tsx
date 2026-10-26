@@ -36,6 +36,7 @@ export default async function ZapisPage({ searchParams }: { searchParams: { k?: 
                 <p className="text-sm text-muted">Каждый день с {WORK_DAY.from} до {WORK_DAY.to}. Выберите удобное время — Маэстро подтвердит запись.</p>
             </div>
             <BookingForm me={me} days={days} works={SELF_WORKS.map((w) => ({ id: w.id, label: w.label, minutes: w.minutes }))} />
+            <a href="/privacy" className="text-center text-xs text-muted underline">Политика обработки персональных данных</a>
         </main>
     )
 }

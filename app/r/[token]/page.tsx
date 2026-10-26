@@ -74,6 +74,7 @@ export default async function Report({ params }: { params: { token: string } }) 
                 </section>
             )}
             <p className="text-center text-sm text-muted">Garaggio · гараж с характером</p>
+            <a href="/privacy" className="text-center text-xs text-muted underline">Политика обработки персональных данных</a>
         </main>
     )
 }

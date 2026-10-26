@@ -7,6 +7,11 @@ import { splitItems } from '@/lib/items'
 import {
     addMaster, bookingLink, carFromPayload, tgApi, carsByPhone, contactKeyboard, getMasters, masterPayload, notifyMasters, sendToClient, tgSend,
 } from '@/lib/tg'
+import { recordConsent } from '@/lib/consent'
+
+// 152-ФЗ: человек видит ссылку на политику до того, как отдаёт номер или подписывается
+const PD_NOTE = '\n\nНажимая «Поделиться номером», вы соглашаетесь на обработку персональных данных по политике: https://garaggio.ru/privacy'
+const PD_NOTE_SUB = '\n\nПользуясь ботом, вы соглашаетесь на обработку персональных данных: https://garaggio.ru/privacy. Отписаться — /stop.'
 
 // Обновления Telegram: их сюда отдаёт опросчик scripts/tg-poller.mjs (с секретом в заголовке).
 type TgUser = { id: number; first_name?: string; last_name?: string; username?: string }
@@ -131,7 +136,8 @@ async function handle(m: TgMessage) {
                 UPDATE cars SET tg_chat_id = ${chatId} WHERE id = ${carId} RETURNING plate, brand, model, owner_name`
             if (car) {
                 const hi = car.owner_name ? `Чао, ${car.owner_name.split(' ')[0]}!` : 'Чао!'
-                await tgSend(chatId, `${hi} Это Garaggio 🤌 Вы подписаны: ${carTitle(car)}.\n\nСюда придут напоминания о ТО и отчёты после визитов. Кнопки внизу — записаться, узнать про ТО, последний визит, своя страница с историей или написать Маэстро.`, { reply_markup: menuKeyboard })
+                await tgSend(chatId, `${hi} Это Garaggio 🤌 Вы подписаны: ${carTitle(car)}.\n\nСюда придут напоминания о ТО и отчёты после визитов. Кнопки внизу — записаться, узнать про ТО, последний визит, своя страница с историей или написать Маэстро.${PD_NOTE_SUB}`, { reply_markup: menuKeyboard })
+                await recordConsent({ source: 'bot_car', name: car.owner_name || name, chatId })
                 await notifyMasters(`✅ Клиент подписался на бота: ${carTitle(car)}${name ? ` (${name})` : ''}`)
                 revalidatePath(`/cars/${carId}`); revalidatePath('/inbox')
                 return
@@ -139,7 +145,7 @@ async function handle(m: TgMessage) {
         }
         const [linked] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM cars WHERE tg_chat_id = ${chatId}`
         if (linked.n) { await tgSend(chatId, 'Чао! Это Garaggio 🤌 Кнопки внизу — записаться, узнать про ТО, последний визит, своя страница с историей или написать Маэстро.', { reply_markup: menuKeyboard }); return }
-        await tgSend(chatId, 'Чао! Это Garaggio 🤌 Поделитесь номером телефона — найдём вашу машину, и сюда будут приходить напоминания о ТО и отчёты.', { reply_markup: contactKeyboard })
+        await tgSend(chatId, 'Чао! Это Garaggio 🤌 Поделитесь номером телефона — найдём вашу машину, и сюда будут приходить напоминания о ТО и отчёты.' + PD_NOTE, { reply_markup: contactKeyboard })
         return
     }
 
@@ -148,7 +154,7 @@ async function handle(m: TgMessage) {
     // «Моя страница»: секретная ссылка на страницу владельца (вся история ТО + пожелания к следующему ТО), кнопкой на каждую машину
     if (text === B.page) {
         const cars = await sql<{ id: number; plate: string; brand: string; model: string; owner_token: string | null }[]>`SELECT id, plate, brand, model, owner_token FROM cars WHERE tg_chat_id = ${chatId} ORDER BY id`
-        if (!cars.length) { await tgSend(chatId, 'Пока не нашли вашу машину. Поделитесь номером телефона — и всё заработает.', { reply_markup: contactKeyboard }); return }
+        if (!cars.length) { await tgSend(chatId, 'Пока не нашли вашу машину. Поделитесь номером телефона — и всё заработает.' + PD_NOTE, { reply_markup: contactKeyboard }); return }
         const rows = []
         for (const c of cars) {
             let token = c.owner_token
@@ -164,7 +170,7 @@ async function handle(m: TgMessage) {
     }
     if (text === B.due || text === B.last) {
         const cars = await sql<{ id: number; plate: string; brand: string; model: string }[]>`SELECT id, plate, brand, model FROM cars WHERE tg_chat_id = ${chatId} ORDER BY id`
-        if (!cars.length) { await tgSend(chatId, 'Пока не нашли вашу машину. Поделитесь номером телефона — и всё заработает.', { reply_markup: contactKeyboard }); return }
+        if (!cars.length) { await tgSend(chatId, 'Пока не нашли вашу машину. Поделитесь номером телефона — и всё заработает.' + PD_NOTE, { reply_markup: contactKeyboard }); return }
         const parts: string[] = []
         for (const c of cars) {
             const [v] = await sql<{ id: number; visit_date: string; mileage: number | null; works: string; next_date: string | null; next_mileage: number | null; share_token: string | null }[]>`
@@ -192,9 +198,10 @@ async function handle(m: TgMessage) {
     }
 
     if (m.contact) {
-        if (m.contact.user_id && m.contact.user_id !== u?.id) { await tgSend(chatId, 'Нужен ваш собственный номер — нажмите кнопку «Поделиться номером».', { reply_markup: contactKeyboard }); return }
+        if (m.contact.user_id && m.contact.user_id !== u?.id) { await tgSend(chatId, 'Нужен ваш собственный номер — нажмите кнопку «Поделиться номером».' + PD_NOTE, { reply_markup: contactKeyboard }); return }
         const phone = formatPhone(m.contact.phone_number)
         await sql`UPDATE tg_chats SET phone = ${phone} WHERE chat_id = ${chatId}`
+        await recordConsent({ source: 'bot_contact', phone, name, chatId })
         const cars = await carsByPhone(phone)
         if (cars.length) {
             const linked = await sql<{ plate: string; brand: string; model: string }[]>`

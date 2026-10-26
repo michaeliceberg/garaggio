@@ -39,6 +39,7 @@ export function BookingForm({ days, works, me }: { days: string[]; works: { id: 
             window.dispatchEvent(new CustomEvent('garaggio:fill', { detail: { field, value } }))
     }
     useEffect(() => { if (me?.cars.length) fillCar(me.cars[0]) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    const [consent, setConsent] = useState(false)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [done, setDone] = useState(false)
@@ -82,10 +83,11 @@ export function BookingForm({ days, works, me }: { days: string[]; works: { id: 
             e.preventDefault()
             const f = new FormData(e.currentTarget)
             if (!time) { setError('Выберите время'); return }
+            if (!consent) { setError('Отметьте согласие на обработку персональных данных'); return }
             setBusy(true); setError(null)
             try {
                 const car = [f.get('brand'), f.get('model')].map((x) => String(x ?? '').trim()).filter(Boolean).join(' ')
-                const r = await book({ day, time, workId, comment, name, car, phone: String(f.get('owner_phone') ?? ''), plate: String(f.get('plate') ?? ''), website: String(f.get('website') ?? '') })
+                const r = await book({ day, time, workId, comment, name, car, phone: String(f.get('owner_phone') ?? ''), plate: String(f.get('plate') ?? ''), website: String(f.get('website') ?? ''), consent })
                 if ('error' in r && r.error) { setError(r.error); if (r.error.includes('заняли')) getSlots(day, workId).then(setSlots) }
                 else setDone(true)
             } finally { setBusy(false) }
@@ -174,11 +176,17 @@ export function BookingForm({ days, works, me }: { days: string[]; works: { id: 
                 <input name="website" tabIndex={-1} autoComplete="off" className="absolute -left-[9999px] h-0 w-0 opacity-0" aria-hidden />
             </Section>
 
+            <label className="flex cursor-pointer items-start gap-2.5 text-xs text-muted">
+                <input type="checkbox" checked={consent} onChange={(e) => { setConsent(e.target.checked); setError(null) }} className="mt-0.5 h-5 w-5 shrink-0 accent-[#8DB255]" />
+                <span>Согласен на обработку моих персональных данных (имя, телефон, данные машины) для записи и обслуживания по{' '}
+                    <a href="/privacy" target="_blank" className="underline">политике</a>. Маэстро свяжется со мной по этому номеру.</span>
+            </label>
+
             {error && <p className="text-center font-semibold text-tomato">{error}</p>}
             <button className="btn-primary" disabled={busy}>
                 {busy ? 'Отправляем…' : time ? `Записаться: ${fmt(day, { day: 'numeric', month: 'short' })}, ${time}` : 'Записаться'}
             </button>
-            <p className="text-center text-xs text-muted">Нажимая «Записаться», вы соглашаетесь, что Маэстро свяжется с вами по этому номеру.</p>
+
         </form>
     )
 }

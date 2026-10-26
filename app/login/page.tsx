@@ -12,6 +12,7 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                 <p className="mt-3 text-gold">Бонджорно, Маэстро! 🤌</p>
             </div>
             <LoginForm error={!!searchParams.error} />
+            <a href="/privacy" className="text-center text-xs text-muted underline">Политика обработки персональных данных</a>
         </main>
     )
 }
